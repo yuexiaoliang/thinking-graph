@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/yuexiaoliang/thinking-graph/schema/graph.schema.json",
+  "title": "thinking-graph graph.yaml",
+  "type": "object",
+  "required": ["version", "updated_at", "relation_types", "nodes", "edges"],
+  "properties": {
+    "version": { "type": "integer", "minimum": 1 },
+    "updated_at": { "type": "string", "format": "date" },
+    "relation_types": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "forked_from",
+          "related_to",
+          "supports",
+          "contradicts",
+          "refines",
+          "leads_to",
+          "depends_on"
+        ]
+      },
+      "uniqueItems": true
+    },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "kind",
+          "category",
+          "status",
+          "primary_parent",
+          "file",
+          "source_conversations",
+          "summary",
+          "continue"
+        ],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+          "title": { "type": "string", "minLength": 1 },
+          "kind": { "enum": ["topic", "concept", "question", "meta"] },
+          "category": { "type": "string", "minLength": 1 },
+          "status": { "enum": ["active", "parked", "superseded", "closed"] },
+          "primary_parent": {
+            "anyOf": [
+              { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+              { "type": "null" }
+            ]
+          },
+          "file": { "type": "string", "pattern": "^nodes/.+\\.md$" },
+          "source_conversations": {
+            "type": "array",
+            "items": { "type": "string", "pattern": "^conv-[0-9]{8}-[0-9]{3,}$" }
+          },
+          "summary": { "type": "string" },
+          "continue": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["source", "target", "type", "reason"],
+        "properties": {
+          "source": { "type": "string" },
+          "target": { "type": "string" },
+          "type": {
+            "enum": [
+              "forked_from",
+              "related_to",
+              "supports",
+              "contradicts",
+              "refines",
+              "leads_to",
+              "depends_on"
+            ]
+          },
+          "reason": { "type": "string", "minLength": 1 }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}
