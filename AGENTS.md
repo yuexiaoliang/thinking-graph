@@ -117,6 +117,7 @@ The visualizer must read this data. It must not maintain a second hand-written r
 │   └── build-site.mjs
 └── visualizer/
     └── index.html
+```
 
 Generated locally/CI (never committed):
 
@@ -127,7 +128,6 @@ dist/
 ├── nodes/
 ├── conversations/
 └── 404.html
-```
 ```
 
 Do not create empty placeholder folders. Git does not preserve empty directories.
