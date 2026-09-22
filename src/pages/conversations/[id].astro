@@ -1,0 +1,141 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import {
+  conversationPath,
+  loadThinkingGraph,
+  thoughtPath
+} from "../../../lib/thinking-graph.mjs";
+
+export async function getStaticPaths() {
+  const model = await loadThinkingGraph();
+
+  return model.conversations.map((conversation) => ({
+    params: { id: conversation.id },
+    props: {
+      conversation: {
+        id: conversation.id,
+        title: conversation.title,
+        date: conversation.date,
+        status: conversation.status,
+        primary_parent_conversation: conversation.primary_parent_conversation,
+        forked_from_node: conversation.forked_from_node,
+        nodes: conversation.nodes,
+        tags: conversation.tags,
+        html: conversation.html
+      },
+      relatedNodes: conversation.nodes
+        .map((id) => model.nodeMap.get(id))
+        .filter(Boolean)
+        .map((node) => ({
+          id: node.id,
+          title: node.title
+        })),
+      parentConversation: conversation.primary_parent_conversation
+        ? (() => {
+            const parent = model.conversationMap.get(conversation.primary_parent_conversation);
+            return parent
+              ? {
+                  id: parent.id,
+                  title: parent.title
+                }
+              : null;
+          })()
+        : null,
+      forkNode: conversation.forked_from_node
+        ? (() => {
+            const node = model.nodeMap.get(conversation.forked_from_node);
+            return node
+              ? {
+                  id: node.id,
+                  title: node.title
+                }
+              : null;
+          })()
+        : null
+    }
+  }));
+}
+
+const {
+  conversation,
+  relatedNodes,
+  parentConversation,
+  forkNode
+} = Astro.props;
+
+const description =
+  "Thinking Graph 的原始头脑风暴对话，用于 provenance 与推理历史追溯。";
+---
+
+<BaseLayout
+  title={conversation.title}
+  description={description}
+  canonicalPath={conversationPath(conversation.id)}
+  robots="noindex,follow"
+>
+  <nav class="breadcrumb" aria-label="面包屑">
+    <a href="/">Thinking Graph</a>
+    <span>›</span>
+    <span>来源对话</span>
+    <span>›</span>
+    <span>{conversation.title}</span>
+  </nav>
+
+  <div class="content-layout">
+    <article class="panel article-card">
+      <h1 class="page-title">{conversation.title}</h1>
+      <div class="page-meta">
+        {conversation.date && <span class="meta-chip">{conversation.date}</span>}
+        <span class="meta-chip">{conversation.id}</span>
+        {conversation.tags.map((tag) => <span class="meta-chip">{tag}</span>)}
+      </div>
+
+      <div class="provenance-notice">
+        这是原始/高保真来源对话，用于追溯思想如何形成；搜索索引的主要内容面是对应的思想节点。
+      </div>
+
+      <div class="markdown" set:html={conversation.html}></div>
+    </article>
+
+    <aside class="panel side-card" aria-label="来源关系">
+      {
+        relatedNodes.length > 0 && (
+          <section class="side-section">
+            <h2>形成 / 更新的节点</h2>
+            <div class="link-list">
+              {
+                relatedNodes.map((node) => (
+                  <a href={thoughtPath(node.id)}>{node.title}</a>
+                ))
+              }
+            </div>
+          </section>
+        )
+      }
+
+      {
+        forkNode && (
+          <section class="side-section">
+            <h2>分叉来源</h2>
+            <div class="link-list">
+              <a href={thoughtPath(forkNode.id)}>{forkNode.title}</a>
+            </div>
+          </section>
+        )
+      }
+
+      {
+        parentConversation && (
+          <section class="side-section">
+            <h2>父对话</h2>
+            <div class="link-list">
+              <a href={conversationPath(parentConversation.id)}>
+                {parentConversation.title}
+              </a>
+            </div>
+          </section>
+        )
+      }
+    </aside>
+  </div>
+</BaseLayout>

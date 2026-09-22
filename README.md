@@ -2,24 +2,23 @@
 
 A persistent, traceable graph of conversations, ideas, branches, cross-links, and evolving thoughts.
 
-> **核心不是网站，而是高信噪比、可移植的头脑风暴上下文。** 可视化、SEO、GEO、构建和部署都只是附加层，不能反向增加冗余内容。
+> **核心不是网站，而是高信噪比、可移植的头脑风暴上下文。** Astro、可视化、SEO、GEO、构建和部署都只是附加层，不能反向增加冗余内容。
 
-这个仓库不是普通的聊天备份，也不是一棵严格的树。它保存：
+这个仓库保存：
 
-- **完整对话**：尽量高保真保存原始聊天，不用摘要替代历史。
-- **主分叉关系**：每个分支有唯一的主父节点，回答“这个想法从哪里长出来？”
-- **跨话题关系**：一个节点可以与多个话题交叉，回答“这个想法还与什么有关？”
-- **认知演化**：旧观点不覆盖，通过 `refines` / `contradicts` 等关系保留变化轨迹。
-- **继续入口**：任意 AI 都可以从一个节点恢复必要上下文并继续讨论。
-- **可视化**：`visualizer/` 直接读取 `graph.yaml`，展示可点击、可搜索、可追溯的思想图谱。
+- **完整/高保真对话**：作为思想来源与 provenance；
+- **思想节点**：压缩后的可复用理解；
+- **主分叉与跨话题关系**：保留思想从哪里来、和什么有关；
+- **认知演化**：用 `refines` / `contradicts` 等关系保留变化；
+- **继续入口**：让任意 AI Agent 从指定节点以最小上下文继续讨论。
 
 ## 核心原则
 
 1. **文件组织像树，关系结构像图。**
-2. **Git 分支只用于代码版本控制，不用于表示思想分叉。**
-3. **同一个思想节点正文只保存一份，不因跨话题而复制。**
-4. **原始对话是历史事实；节点摘要是当前理解；`graph.yaml` 是关系拓扑。**
-5. **修改观点时保留旧节点，通过关系表达修正，而不是抹掉历史。**
+2. **思想分叉不用 Git branch 表示。**
+3. **同一个思想节点正文只保存一份。**
+4. **conversation = provenance；node = 压缩理解；graph = 拓扑。**
+5. **任何时候不得为了 SEO/GEO、关键词、字数或“完整感”增加冗余内容。**
 
 ## 目录
 
@@ -27,17 +26,17 @@ A persistent, traceable graph of conversations, ideas, branches, cross-links, an
 thinking-graph/
 ├── AGENTS.md
 ├── BRAINSTORM.md       # 头脑风暴的最小上下文入口
-├── README.md
-├── CLOUDFLARE.md       # Cloudflare Workers 部署说明
+├── graph.yaml
+├── conversations/      # 原始/高保真思想来源
+├── nodes/              # 高信噪比思想节点
+├── lib/                # 图谱读取、Markdown 渲染与校验
+├── scripts/            # 图谱校验
+├── src/                # Astro SSG 发布层（可替换）
+├── schema/
+├── astro.config.mjs
 ├── package.json
 ├── wrangler.jsonc
-├── graph.yaml
-├── conversations/      # 完整/高保真聊天记录，按真实分叉拆分
-├── nodes/              # 思想节点正文；一个节点只存在一份
-├── schema/             # 数据格式与字段约定
-├── scripts/
-│   └── build-site.mjs  # 校验图谱并生成 dist/
-└── visualizer/         # 交互式图谱 + 站内 Markdown 阅读器 + 移动端 UX
+└── CLOUDFLARE.md
 ```
 
 ## 头脑风暴模式
@@ -46,93 +45,77 @@ thinking-graph/
 
 最小读取路径：
 
-1. **[BRAINSTORM.md](./BRAINSTORM.md)**
-2. `graph.yaml` 中与当前话题有关的部分
+1. [BRAINSTORM.md](./BRAINSTORM.md)
+2. `graph.yaml` 中当前话题相关部分
 3. 当前 `nodes/<id>.md`
-4. 只有确实需要时才读取父节点、关联节点或原始 conversation
+4. 只有确有必要时才读父节点、关联节点或原始 conversation
 
-正常头脑风暴只修改 `conversations/`、`nodes/`、`graph.yaml`。不应因为一次讨论去加载或修改 `visualizer/`、`scripts/`、Cloudflare 或构建配置。
+正常头脑风暴只修改 `conversations/`、`nodes/`、`graph.yaml`。
 
-如果用户明确要求改网站、部署、构建或可视化，再进入**工程模式**并阅读完整 **[AGENTS.md](./AGENTS.md)** 和对应代码。
+## Astro SSG 发布层
 
-## 当前第一组讨论
-
-首版收录 2026-09-22 的讨论：
-
-- AI 时代未来稀缺人才
-- 白领岗位压缩及对蓝领/服务业的二阶影响
-- AI 自媒体内容爆炸与信息通胀
-- 模型训练数据污染、Model Collapse 与真实世界数据价值
-- thinking-graph 本身的持久化与可视化设计
-
-## 构建与可视化
-
-项目保持无框架的轻量静态架构。源文件仍然是：
+思想层保持原样：
 
 ```text
-graph.yaml + nodes/ + conversations/ + visualizer/
+graph.yaml + nodes/ + conversations/
 ```
 
-构建时执行：
+Astro 在构建期派生：
+
+```text
+/                                    # 交互式图谱首页
+/thoughts/<node-id>/                 # 节点主页面，可索引
+/conversations/<conversation-id>/    # provenance，noindex/follow
+/thoughts/                           # 节点索引
+/llms.txt                            # 机器导航索引
+/robots.txt
+/sitemap-*.xml                       # 配置 SITE_URL 后生成
+```
+
+Markdown 在构建期转成并清理为 HTML，不再依赖浏览器运行时 fetch Markdown。
+
+真实内链从 `graph.yaml` 派生：主父节点、子分支、跨话题关系、反向引用和来源对话。SEO/GEO 只处理发布结构，不增加思想正文。
+
+## 本地开发
+
+Astro 当前要求 Node 22.12.0+，仓库包含 `.nvmrc`。
 
 ```bash
 npm install
 npm run check
-npm run build
-```
-
-输出：
-
-```text
-dist/
-├── index.html
-├── graph.yaml
-├── content-index.json  # build 自动生成：conversation id -> Markdown 路径
-├── enhancements.css
-├── enhancements.js
-├── nodes/
-├── conversations/
-└── 404.html
-```
-
-可视化支持直接在页面内阅读节点笔记与来源对话 Markdown，不再跳转到原始 `.md` 文件；移动端使用底部节点详情面板和全屏阅读器。
-
-本地用 Cloudflare Wrangler 预览：
-
-```bash
 npm run dev
+npm run build
+npm run preview
 ```
-
-`graph.yaml` 始终是关系数据源；`dist/` 只是构建产物，不提交 Git，也不得成为第二套手工维护的数据。
 
 ## Cloudflare
 
-仓库已经配置为 **Cloudflare Workers Static Assets**：
+部署方式：**Cloudflare Workers Static Assets**。
 
-- Wrangler 配置：`wrangler.jsonc`
-- Build command：`npm run build`
-- Deploy command：`npx wrangler deploy`
-- Production branch：`main`
+```text
+Build command:  npm run build
+Deploy command: npx wrangler deploy
+Production branch: main
+```
 
-Cloudflare 控制台的具体连接步骤见 **[CLOUDFLARE.md](./CLOUDFLARE.md)**。
+生产环境建议设置：
 
-## 状态
+```text
+SITE_URL=https://你的最终公开域名
+```
 
-这是 v0.1：先把数据模型、分叉规则、第一批对话和交互式可视化骨架固定下来，后续再逐步自动化采集、分叉识别和图谱更新。
-
+它用于 canonical、JSON-LD 绝对 URL、sitemap 与 llms.txt 的绝对链接。详情见 [CLOUDFLARE.md](./CLOUDFLARE.md)。
 
 ## 提交与部署原子性
 
-`main` 是 Cloudflare 的发布边界。仓库维护遵循：
+`main` 是发布边界：
 
 > **一次完整逻辑变更 = 一个 Git commit = 一次 main 更新 = 一次 Cloudflare 构建。**
 
-即使一次讨论同时修改 `conversations/`、`nodes/`、`graph.yaml`、可视化和文档，也应先完整准备并校验，再作为一个原子 commit 发布。
-
-Agent 的标准写入流程是：
+Agent 的标准发布路径：
 
 ```text
 blobs → tree → commit → update_ref(main) once
 ```
 
-禁止为了逐个写文件而连续更新 `main`，避免产生大量重复 Cloudflare Build 和中间半完成版本。详细规则见 [AGENTS.md](./AGENTS.md)。
+详细规则见 [AGENTS.md](./AGENTS.md)。

@@ -71,5 +71,5 @@
 
 1. 同步修改 `graph.schema.json`；
 2. 同步修改 `AGENTS.md`；
-3. 同步修改 `visualizer/index.html`；
+3. 同步修改依赖该 schema 的 `lib/` / `src/` 发布层与校验逻辑；
 4. 在 commit message 中明确写出 schema change。

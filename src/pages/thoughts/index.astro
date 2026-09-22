@@ -1,0 +1,35 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { loadThinkingGraph, thoughtPath } from "../../../lib/thinking-graph.mjs";
+
+const model = await loadThinkingGraph();
+const description = "Thinking Graph 中可独立继续、引用和追溯的思想节点。";
+---
+
+<BaseLayout
+  title="思想节点"
+  description={description}
+  canonicalPath="/thoughts/"
+>
+  <nav class="breadcrumb" aria-label="面包屑">
+    <a href="/">Thinking Graph</a>
+    <span>›</span>
+    <span>思想节点</span>
+  </nav>
+
+  <section class="hero">
+    <h1>思想节点</h1>
+    <p>每个节点只保存一份高信噪比理解；来源对话和跨话题关系通过图谱追溯。</p>
+  </section>
+
+  <div class="thought-grid">
+    {
+      model.nodes.map((node) => (
+        <a class="thought-card" href={thoughtPath(node.id)}>
+          <strong>{node.title}</strong>
+          <p>{node.summary}</p>
+        </a>
+      ))
+    }
+  </div>
+</BaseLayout>

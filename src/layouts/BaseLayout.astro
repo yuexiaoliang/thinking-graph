@@ -1,0 +1,58 @@
+---
+import "../styles/global.css";
+
+const {
+  title,
+  description,
+  canonicalPath = Astro.url.pathname,
+  robots = "index,follow",
+  ogType = "website",
+  jsonLd = []
+} = Astro.props;
+
+const fullTitle = title === "Thinking Graph" ? title : title + " | Thinking Graph";
+const canonical = Astro.site ? new URL(canonicalPath, Astro.site).toString() : null;
+const structuredData = Array.isArray(jsonLd) ? jsonLd.filter(Boolean) : [jsonLd].filter(Boolean);
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="generator" content={Astro.generator} />
+    <meta name="robots" content={robots} />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content={ogType} />
+    {canonical && <meta property="og:url" content={canonical} />}
+    {canonical && <link rel="canonical" href={canonical} />}
+    <link rel="alternate" type="text/plain" href="/llms.txt" title="Thinking Graph for AI agents" />
+    {
+      structuredData.map((data) => (
+        <script type="application/ld+json" is:inline set:html={JSON.stringify(data)}></script>
+      ))
+    }
+  </head>
+  <body>
+    <header class="site-header">
+      <nav class="site-nav" aria-label="主导航">
+        <a class="site-brand" href="/">Thinking Graph</a>
+        <div class="site-links">
+          <a href="/thoughts/">思想节点</a>
+          <a href="/llms.txt">AI 索引</a>
+        </div>
+      </nav>
+    </header>
+
+    <main class="site-main">
+      <slot />
+    </main>
+
+    <footer class="site-footer">
+      Thinking Graph · 以高信噪比思想数据为源，发布层由静态构建派生。
+    </footer>
+  </body>
+</html>

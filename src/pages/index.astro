@@ -1,0 +1,41 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import GraphExplorer from "../components/GraphExplorer.astro";
+import { loadThinkingGraph } from "../../lib/thinking-graph.mjs";
+
+const model = await loadThinkingGraph();
+const description =
+  "可追溯、可分叉、可被任意 AI Agent 继续的高信噪比思想图谱。";
+
+const jsonLd = Astro.site
+  ? {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "@id": new URL("/#website", Astro.site).toString(),
+      name: "Thinking Graph",
+      description,
+      url: new URL("/", Astro.site).toString()
+    }
+  : null;
+---
+
+<BaseLayout
+  title="Thinking Graph"
+  description={description}
+  canonicalPath="/"
+  jsonLd={jsonLd}
+>
+  <section class="hero">
+    <h1>Thinking Graph</h1>
+    <p>
+      用图结构保存长期头脑风暴：原始对话负责 provenance，节点负责高信噪比理解，关系负责可追溯的分叉与交叉。
+    </p>
+    <div class="stats" aria-label="图谱统计">
+      <span class="stat">{model.nodes.length} 个思想节点</span>
+      <span class="stat">{model.graph.edges.length} 条关系</span>
+      <span class="stat">{model.conversations.length} 段来源对话</span>
+    </div>
+  </section>
+
+  <GraphExplorer model={model} />
+</BaseLayout>

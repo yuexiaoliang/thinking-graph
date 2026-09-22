@@ -1,0 +1,252 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import {
+  RELATION_LABELS,
+  conversationPath,
+  getNodeRelations,
+  loadThinkingGraph,
+  thoughtPath
+} from "../../../lib/thinking-graph.mjs";
+
+function pickNode(node) {
+  if (!node) return null;
+  return {
+    id: node.id,
+    title: node.title,
+    summary: node.summary,
+    category: node.category,
+    status: node.status
+  };
+}
+
+export async function getStaticPaths() {
+  const model = await loadThinkingGraph();
+
+  return model.nodes.map((node) => {
+    const relations = getNodeRelations(model, node.id);
+
+    return {
+      params: { id: node.id },
+      props: {
+        node: {
+          id: node.id,
+          title: node.title,
+          summary: node.summary,
+          category: node.category,
+          status: node.status,
+          tags: node.tags,
+          html: node.html
+        },
+        parent: pickNode(relations.parent),
+        children: relations.children.map(pickNode),
+        outgoing: relations.outgoing.map((item) => ({
+          type: item.edge.type,
+          reason: item.edge.reason,
+          node: pickNode(item.node)
+        })),
+        incoming: relations.incoming.map((item) => ({
+          type: item.edge.type,
+          reason: item.edge.reason,
+          node: pickNode(item.node)
+        })),
+        conversations: relations.conversations.map((conversation) => ({
+          id: conversation.id,
+          title: conversation.title,
+          date: conversation.date
+        }))
+      }
+    };
+  });
+}
+
+const {
+  node,
+  parent,
+  children,
+  outgoing,
+  incoming,
+  conversations
+} = Astro.props;
+
+const canonicalPath = thoughtPath(node.id);
+const canonical = Astro.site ? new URL(canonicalPath, Astro.site).toString() : null;
+const siteRoot = Astro.site ? new URL("/", Astro.site).toString() : null;
+
+const jsonLd = canonical
+  ? [
+      {
+        "@context": "https://schema.org",
+        "@type": "CreativeWork",
+        "@id": canonical + "#work",
+        name: node.title,
+        description: node.summary,
+        url: canonical,
+        isPartOf: {
+          "@type": "WebSite",
+          "@id": siteRoot + "#website",
+          name: "Thinking Graph",
+          url: siteRoot
+        },
+        citation: conversations.map((conversation) =>
+          new URL(conversationPath(conversation.id), Astro.site).toString()
+        )
+      },
+      {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          {
+            "@type": "ListItem",
+            position: 1,
+            name: "Thinking Graph",
+            item: siteRoot
+          },
+          {
+            "@type": "ListItem",
+            position: 2,
+            name: "思想节点",
+            item: new URL("/thoughts/", Astro.site).toString()
+          },
+          {
+            "@type": "ListItem",
+            position: 3,
+            name: node.title,
+            item: canonical
+          }
+        ]
+      }
+    ]
+  : [];
+
+const machineRelations = {
+  id: node.id,
+  primary_parent: parent?.id || null,
+  children: children.map((child) => child.id),
+  outgoing: outgoing.map((item) => ({
+    type: item.type,
+    target: item.node.id,
+    reason: item.reason
+  })),
+  incoming: incoming.map((item) => ({
+    type: item.type,
+    source: item.node.id,
+    reason: item.reason
+  })),
+  source_conversations: conversations.map((conversation) => conversation.id)
+};
+---
+
+<BaseLayout
+  title={node.title}
+  description={node.summary}
+  canonicalPath={canonicalPath}
+  ogType="article"
+  jsonLd={jsonLd}
+>
+  <script
+    type="application/json"
+    id="thinking-graph-relations"
+    is:inline
+    set:html={JSON.stringify(machineRelations)}
+  ></script>
+
+  <nav class="breadcrumb" aria-label="面包屑">
+    <a href="/">Thinking Graph</a>
+    <span>›</span>
+    <a href="/thoughts/">思想节点</a>
+    <span>›</span>
+    <span>{node.title}</span>
+  </nav>
+
+  <div class="content-layout">
+    <article class="panel article-card">
+      <h1 class="page-title">{node.title}</h1>
+      <p class="page-summary">{node.summary}</p>
+      <div class="page-meta">
+        <span class="meta-chip">{node.category}</span>
+        <span class="meta-chip">{node.status}</span>
+        {node.tags.map((tag) => <span class="meta-chip">{tag}</span>)}
+      </div>
+
+      <div class="markdown" set:html={node.html}></div>
+    </article>
+
+    <aside class="panel side-card" aria-label="图谱关系">
+      {
+        parent && (
+          <section class="side-section">
+            <h2>主父节点</h2>
+            <div class="link-list">
+              <a href={thoughtPath(parent.id)}>{parent.title}</a>
+            </div>
+          </section>
+        )
+      }
+
+      {
+        children.length > 0 && (
+          <section class="side-section">
+            <h2>子分支</h2>
+            <div class="link-list">
+              {children.map((child) => <a href={thoughtPath(child.id)}>{child.title}</a>)}
+            </div>
+          </section>
+        )
+      }
+
+      {
+        conversations.length > 0 && (
+          <section class="side-section">
+            <h2>来源对话</h2>
+            <div class="link-list">
+              {
+                conversations.map((conversation) => (
+                  <a href={conversationPath(conversation.id)}>
+                    {conversation.title}
+                    {conversation.date && <small>{conversation.date}</small>}
+                  </a>
+                ))
+              }
+            </div>
+          </section>
+        )
+      }
+
+      {
+        outgoing.length > 0 && (
+          <section class="side-section">
+            <h2>向外关系</h2>
+            <div class="link-list">
+              {
+                outgoing.map((item) => (
+                  <a href={thoughtPath(item.node.id)}>
+                    {(RELATION_LABELS[item.type] || item.type) + " · " + item.node.title}
+                    <small>{item.reason}</small>
+                  </a>
+                ))
+              }
+            </div>
+          </section>
+        )
+      }
+
+      {
+        incoming.length > 0 && (
+          <section class="side-section">
+            <h2>反向引用</h2>
+            <div class="link-list">
+              {
+                incoming.map((item) => (
+                  <a href={thoughtPath(item.node.id)}>
+                    {(RELATION_LABELS[item.type] || item.type) + " · " + item.node.title}
+                    <small>{item.reason}</small>
+                  </a>
+                ))
+              }
+            </div>
+          </section>
+        )
+      }
+    </aside>
+  </div>
+</BaseLayout>

@@ -1,38 +1,40 @@
 # Cloudflare deployment
 
-This repository is designed to deploy as **Cloudflare Workers Static Assets**.
+The public site is an **Astro static site** deployed as **Cloudflare Workers Static Assets**.
 
-The source of truth remains GitHub. Cloudflare only serves the generated static site.
+Astro is used only at build time. There is no SSR Worker and no Cloudflare adapter.
 
 ## Build flow
 
 ```text
-graph.yaml + nodes/ + conversations/ + visualizer/
-                         ↓
-                  npm run build
-                         ↓
-                       dist/
-                 ├── index.html
-                 ├── graph.yaml
-                 ├── content-index.json
-                 ├── enhancements.css
-                 ├── enhancements.js
-                 ├── nodes/
-                 ├── conversations/
-                 └── 404.html
-                         ↓
-                Cloudflare Workers
+graph.yaml + nodes/ + conversations/
+                ↓
+         npm run check
+                ↓
+          astro build
+                ↓
+              dist/
+     ├── index.html
+     ├── thoughts/.../
+     ├── conversations/.../
+     ├── robots.txt
+     ├── llms.txt
+     ├── sitemap-*.xml
+     ├── _astro/
+     └── 404.html
+                ↓
+     Cloudflare Static Assets
 ```
 
-## Cloudflare dashboard setup
+## Cloudflare dashboard
 
-Create/connect a Worker to the GitHub repository:
+Repository:
 
 ```text
 yuexiaoliang/thinking-graph
 ```
 
-Recommended settings:
+Recommended Workers Builds settings:
 
 | Setting | Value |
 | --- | --- |
@@ -41,88 +43,57 @@ Recommended settings:
 | Build command | `npm run build` |
 | Deploy command | `npx wrangler deploy` |
 
-The Wrangler configuration is already committed in `wrangler.jsonc`.
+`wrangler.jsonc` already points Static Assets at `./dist`.
 
-Cloudflare will deploy the generated `./dist` directory as Workers Static Assets.
+## Production variable
 
-## Local verification
+Set:
 
-Install dependencies:
+```text
+SITE_URL=https://your-public-domain.example
+```
+
+Use the final public origin with no path.
+
+This enables:
+
+- canonical URLs;
+- Open Graph page URLs;
+- JSON-LD absolute URLs;
+- `@astrojs/sitemap`;
+- the sitemap line in `robots.txt`;
+- absolute links in `llms.txt`.
+
+Without `SITE_URL`, the site still builds and serves correctly, but it deliberately does not invent a production origin or sitemap.
+
+## Node version
+
+The repository includes:
+
+```text
+.nvmrc → 22.12.0
+```
+
+## Local commands
 
 ```bash
 npm install
-```
-
-Validate graph integrity without building:
-
-```bash
 npm run check
-```
-
-Build:
-
-```bash
-npm run build
-```
-
-Preview with Wrangler:
-
-```bash
-npx wrangler dev
-```
-
-Or:
-
-```bash
 npm run dev
+npm run build
+npm run preview
 ```
 
-## Manual deploy
-
-If you ever need to deploy from a local machine:
+Manual deploy:
 
 ```bash
 npm run deploy
 ```
 
-## What the build validates
-
-Before writing `dist/`, the build fails if it finds:
-
-- duplicate node IDs;
-- missing `primary_parent` nodes;
-- node files missing from disk;
-- node-file front-matter IDs that do not match `graph.yaml`;
-- missing source conversation IDs;
-- relation edges that point to missing nodes;
-- relation types not declared in `graph.yaml`;
-- relationship edges without a reason.
-
-This prevents a malformed graph from being published.
-
-The build also generates `content-index.json`, which lets the deployed visualizer resolve stable conversation IDs to Markdown files for the in-app reader.
-
-## Deployment rule for agents
-
-Agents should modify source files only:
-
-- `graph.yaml`
-- `nodes/`
-- `conversations/`
-- `visualizer/`
-- schemas/docs/scripts as needed
-
-Do **not** commit `dist/`. It is generated during CI/deployment and is intentionally ignored by Git.
-
-
 ## Build trigger hygiene
 
-The production branch is `main`, so every update to that ref can trigger a Cloudflare build.
+`main` is the release boundary:
 
-Repository automation therefore follows:
+> **one logical change = one commit = one main ref update = one Cloudflare build**
 
-> **one logical change = one commit = one main ref update = one build**
-
-For multi-file work, agents must prepare all blobs and one tree/commit first, then update `main` exactly once. Do not use repeated per-file Contents API commits for one feature.
-
-Before the final ref update, automation must verify that `main` still points to the expected parent commit. If it moved, abort the publish step and reconcile against the new head. Never force-push to bypass this safety check.
+Agent-managed multi-file changes must use the atomic Git Data flow documented in `AGENTS.md`. Never push intermediate implementation states to `main`.
