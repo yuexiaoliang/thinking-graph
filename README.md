@@ -25,11 +25,16 @@ A persistent, traceable graph of conversations, ideas, branches, cross-links, an
 thinking-graph/
 ├── AGENTS.md
 ├── README.md
+├── CLOUDFLARE.md       # Cloudflare Workers 部署说明
+├── package.json
+├── wrangler.jsonc
 ├── graph.yaml
 ├── conversations/      # 完整/高保真聊天记录，按真实分叉拆分
 ├── nodes/              # 思想节点正文；一个节点只存在一份
 ├── schema/             # 数据格式与字段约定
-└── visualizer/         # 交互式图谱视图，读取 graph.yaml
+├── scripts/
+│   └── build-site.mjs  # 校验图谱并生成 dist/
+└── visualizer/         # 交互式图谱源文件，读取 graph.yaml
 ```
 
 ## 新 Agent 从哪里开始
@@ -51,21 +56,51 @@ thinking-graph/
 - 模型训练数据污染、Model Collapse 与真实世界数据价值
 - thinking-graph 本身的持久化与可视化设计
 
-## 可视化
+## 构建与可视化
 
-`visualizer/index.html` 会读取仓库根目录的 `graph.yaml`。请通过 HTTP 服务打开，而不是直接双击本地文件，例如：
-
-```bash
-python -m http.server 8000
-```
-
-然后访问：
+项目保持无框架的轻量静态架构。源文件仍然是：
 
 ```text
-http://localhost:8000/visualizer/
+graph.yaml + nodes/ + conversations/ + visualizer/
 ```
 
-> `graph.yaml` 是关系数据源；可视化层不得复制维护另一份手工关系数据。
+构建时执行：
+
+```bash
+npm install
+npm run check
+npm run build
+```
+
+输出：
+
+```text
+dist/
+├── index.html
+├── graph.yaml
+├── nodes/
+├── conversations/
+└── 404.html
+```
+
+本地用 Cloudflare Wrangler 预览：
+
+```bash
+npm run dev
+```
+
+`graph.yaml` 始终是关系数据源；`dist/` 只是构建产物，不提交 Git，也不得成为第二套手工维护的数据。
+
+## Cloudflare
+
+仓库已经配置为 **Cloudflare Workers Static Assets**：
+
+- Wrangler 配置：`wrangler.jsonc`
+- Build command：`npm run build`
+- Deploy command：`npx wrangler deploy`
+- Production branch：`main`
+
+Cloudflare 控制台的具体连接步骤见 **[CLOUDFLARE.md](./CLOUDFLARE.md)**。
 
 ## 状态
 
