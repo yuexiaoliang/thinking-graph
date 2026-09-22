@@ -100,7 +100,9 @@ async function validateGraph() {
     conversationIndex.push({
       id,
       title: frontMatter.title || id,
-      date: frontMatter.date || null,
+      date: frontMatter.date instanceof Date
+        ? frontMatter.date.toISOString().slice(0, 10)
+        : (frontMatter.date || null),
       status: frontMatter.status || null,
       path: file,
       forked_from_node: frontMatter.forked_from_node || null,
