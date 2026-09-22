@@ -14,6 +14,9 @@ graph.yaml + nodes/ + conversations/ + visualizer/
                        dist/
                  ├── index.html
                  ├── graph.yaml
+                 ├── content-index.json
+                 ├── enhancements.css
+                 ├── enhancements.js
                  ├── nodes/
                  ├── conversations/
                  └── 404.html
@@ -96,6 +99,8 @@ Before writing `dist/`, the build fails if it finds:
 - relationship edges without a reason.
 
 This prevents a malformed graph from being published.
+
+The build also generates `content-index.json`, which lets the deployed visualizer resolve stable conversation IDs to Markdown files for the in-app reader.
 
 ## Deployment rule for agents
 
