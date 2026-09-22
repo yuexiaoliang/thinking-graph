@@ -116,7 +116,9 @@ The visualizer must read this data. It must not maintain a second hand-written r
 ├── scripts/
 │   └── build-site.mjs
 └── visualizer/
-    └── index.html
+    ├── index.html
+    ├── enhancements.css
+    └── enhancements.js
 ```
 
 Generated locally/CI (never committed):
@@ -125,6 +127,9 @@ Generated locally/CI (never committed):
 dist/
 ├── index.html
 ├── graph.yaml
+├── content-index.json
+├── enhancements.css
+├── enhancements.js
 ├── nodes/
 ├── conversations/
 └── 404.html
@@ -451,7 +456,9 @@ It must:
 - support category filtering;
 - support node selection;
 - show source conversations and continuation hints;
-- support zoom/pan or equivalent navigation.
+- support zoom/pan or equivalent navigation;
+- render node and conversation Markdown inside the app instead of sending users to raw `.md` source;
+- provide touch-friendly mobile controls, a mobile node-detail sheet, and a full-screen mobile reader.
 
 It must not contain a manually duplicated copy of the graph topology.
 
@@ -462,7 +469,7 @@ The repository uses a thin static build:
 - build command: `npm run build`;
 - generated deployment output: `dist/`.
 
-The build script validates graph integrity before copying source content into `dist/`.
+The build script validates graph integrity before copying source content into `dist/`. It also generates `content-index.json`, which maps stable conversation IDs to their Markdown paths and titles for the in-app reader.
 
 If the schema changes, update the visualizer, build validation, and schema docs in the same change.
 
@@ -502,6 +509,7 @@ Do **not**:
 - create an “archive” that removes old thinking from the active provenance graph;
 - fabricate missing historical conversation;
 - commit generated `dist/` output;
+- hard-code conversation file paths in the visualizer when they can be resolved from generated `content-index.json`;
 - treat Cloudflare as the source of truth instead of GitHub source files.
 
 ---
