@@ -178,21 +178,6 @@ nodes:
       - 普通人如何建立自己的第一手数据生产能力？
       - 这类能力能否形成个人商业模式？
 
-  - id: thinking-graph-system
-    title: Thinking Graph 持久化系统
-    kind: meta
-    category: meta
-    status: active
-    primary_parent: ai-future
-    file: nodes/thinking-graph-system.md
-    source_conversations:
-      - conv-20260922-004
-      - conv-20260922-005
-    summary: 用 GitHub 保存高信噪比的对话、分叉、关系与认知演化，让不同 AI 能用最小必要上下文从任意节点继续。
-    continue:
-      - 如何自动识别分叉并提交？
-      - 如何让不同 AI 共享统一的读写协议？
-      - 是否需要图数据库或只用 Git/YAML 即可？
 
 edges:
   - source: future-talent
@@ -270,7 +255,3 @@ edges:
     type: leads_to
     reason: 信息通胀直接提高了可证明来自现实的新信息的相对价值。
 
-  - source: thinking-graph-system
-    target: ai-future
-    type: related_to
-    reason: Thinking Graph 是为了长期保存并继续这组关于 AI 未来的分叉讨论。

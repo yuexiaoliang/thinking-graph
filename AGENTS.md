@@ -22,6 +22,37 @@ The only intentional overlap is functional:
 
 Each layer must contain only what belongs to that role. A summary must compress; it must not duplicate its source.
 
+### Persistence gate — decide whether content belongs before deciding branches
+
+Before creating or updating any conversation, node, or edge, ask:
+
+> **Will preserving this materially improve a future AI's ability to resume a line of thought the user is likely to care about?**
+
+Only admitted thought content may enter `conversations/`, `nodes/`, or `graph.yaml`.
+
+Strong admission signals:
+
+- it forms, changes, challenges, or materially extends a durable idea;
+- the user may reasonably want to resume this line of thinking later;
+- it has value outside the immediate chat turn;
+- preserving it improves future context more than it increases noise.
+
+Normally reject:
+
+- casual small talk or incidental remarks;
+- one-off factual/operational questions with no durable reasoning value;
+- temporary errands, scheduling, or status chatter;
+- routine implementation, debugging, deployment, or repository maintenance;
+- unrelated detours that the user has not indicated should become a lasting topic.
+
+Discussion about **this repository's own architecture, persistence format, agent protocol, website, visualization, deployment, maintenance, or debugging** belongs in repository documentation and Git history, not in the thought corpus. A rule being durable does not by itself make it thought content.
+
+If an unrelated topic is genuinely worth preserving as a long-running thought, admit it as a separate root/topic rather than inventing a parent relation to the current branch.
+
+When uncertain, **do not persist by default**. It is cheaper to omit low-value material than to permanently dilute future context.
+
+A host chat session is not a persistence unit. One ChatGPT/AI session may contain several admitted thought segments plus rejected interludes.
+
 ### Choose the mode before reading files
 
 **Brainstorm mode:** read [BRAINSTORM.md](./BRAINSTORM.md), then only the minimum relevant graph/node/conversation context. Do not load engineering code by default.
@@ -36,7 +67,7 @@ If you opened `AGENTS.md` only to continue a thought, this section plus `BRAINST
 
 ## 1. Mission
 
-`thinking-graph` is a persistent, portable memory of long-running conversations and evolving ideas.
+`thinking-graph` is a persistent, portable memory of **admitted high-signal thought conversations** and evolving ideas. It is not a complete archive of everything said in a host chat session.
 
 The repository must make it possible for a new AI session, a different AI system, or a human reader to:
 
@@ -75,15 +106,18 @@ Git branches are only for repository/version-control workflow. Thought branches 
 
 There are three layers. Do not collapse them into one.
 
-### 3.1 Raw conversation layer — `conversations/`
+### 3.1 Admitted thought-conversation layer — `conversations/`
 
-Purpose: historical record.
+Purpose: high-fidelity provenance for content that passed the persistence gate.
 
-- Preserve user and assistant messages as faithfully as possible.
-- Do not silently rewrite old messages to improve style.
-- Do not replace the conversation with a summary.
-- If a discussion clearly forks into a new problem space, create a new conversation file.
+- A conversation file represents a **logical thought conversation**, not necessarily an entire ChatGPT/AI session.
+- Preserve admitted user and assistant turns as faithfully as possible.
+- Unrelated or rejected interludes from the host session do not need to be copied into the repository.
+- Do not silently rewrite retained messages to improve style.
+- Do not replace admitted conversation material with a summary.
+- Split into a new conversation only after the new material passes the persistence gate and represents a durable new problem space.
 - A child conversation must record its parent conversation and the node it forked from.
+- If admitted content is genuinely unrelated to the existing graph, start a new root/topic instead of manufacturing provenance.
 
 ### 3.2 Idea layer — `nodes/`
 
@@ -201,6 +235,8 @@ Do not rename an ID merely to improve wording once other nodes reference it. Cha
 
 ## 6. Conversation file contract
 
+A conversation file is created **only after the persistence gate passes**. It captures one logical thought thread or admitted segment; it is not required to mirror the boundaries of the host chat session.
+
 Each conversation file begins with YAML front matter.
 
 Required fields:
@@ -229,23 +265,25 @@ forked_from_node: future-talent
 
 ### Conversation body
 
-Use this form:
+Use this form for the admitted turns:
 
 ```markdown
 ## Conversation
 
 ### User
 
-Exact or high-fidelity user message.
+Exact or high-fidelity admitted user message.
 
 ### Assistant
 
-Exact or high-fidelity assistant response.
+Exact or high-fidelity admitted assistant response.
 
 ### User
 
 ...
 ```
+
+A host session may contain unrelated interludes before the thought resumes. Those rejected passages may be omitted rather than polluting provenance. Preserve the order and wording of the turns that are retained.
 
 Then append:
 
@@ -260,7 +298,7 @@ Short factual description of what changed in the graph.
 - plausible next branch
 ```
 
-“Branch outcome” is secondary metadata. It never replaces the transcript.
+“Branch outcome” is secondary metadata. It never replaces the admitted transcript.
 
 ---
 
@@ -318,26 +356,47 @@ Keep node summaries compact enough for an AI to reload quickly, but preserve the
 
 ---
 
-## 8. When to create a new branch
+## 8. Persistence first, branching second
 
-Create a new conversation file and usually a new node when the discussion changes the **problem being investigated**, not merely when it adds detail.
+A topic change is **not** automatically a branch.
 
-Strong signals for a fork:
+Always use this order:
 
-1. The user asks a new causal question.
-2. The answer would require a substantially different evidence base.
-3. The new discussion could continue independently for many turns.
-4. A new actor/system/market is introduced as the main object of analysis.
-5. The conversation jumps from an object-level topic to a meta-level topic.
-6. The user explicitly says they want to branch or revisit a prior branch.
+```text
+new discussion
+    ↓
+persistence gate: worth long-term memory?
+    ├── no → ignore; write nothing to the thought corpus
+    └── yes
+          ↓
+same durable problem?
+    ├── yes → continue/update the current node
+    └── no
+          ↓
+meaningful independent line of thought?
+    ├── yes → create a new branch, or a new root if unrelated
+    └── no → ignore
+```
+
+After admission, strong signals for a fork include:
+
+1. the user asks a new causal or strategic question;
+2. the answer requires a substantially different evidence base;
+3. the new discussion could continue independently for many turns;
+4. a new actor/system/market becomes the main object of analysis;
+5. the user explicitly asks to branch or revisit a prior branch.
+
+A shift to a meta-level topic is only a fork **if that meta topic itself passes the persistence gate**. Repository/self-maintenance discussion does not.
 
 Examples:
 
-- “未来什么人才稀缺？” → “白领会不会挤压蓝领？” is a fork.
-- “白领挤压蓝领” → “这些人会不会大量做自媒体？” can become a new fork when content economics becomes the main subject.
-- Clarifying one sentence inside the same argument is **not** necessarily a fork.
+- “未来什么人才稀缺？” → “白领会不会挤压蓝领？” can be an admitted fork.
+- “白领挤压蓝领” → “这些人会不会大量做自媒体？” can become a fork when content economics becomes the main durable subject.
+- “AI 未来” → “我的电脑这条命令怎么写？” is a topic change but normally **not** a thought branch.
+- “AI 未来” → discussion of how this repository should store branches is repository maintenance and **not** thought content.
+- Clarifying one sentence inside the same argument is not necessarily a fork.
 
-When uncertain, prefer preserving a meaningful branch rather than letting one transcript grow indefinitely.
+When uncertain about admission, omit. When admitted but unrelated to the current graph, prefer a new root rather than a false parent-child edge.
 
 ---
 
@@ -454,20 +513,22 @@ Start with the brainstorm-only scope. Load engineering context only when the use
 
 ## 14. Adding a new brainstorming conversation
 
-For every meaningful brainstorming discussion:
+For every discussion that may contain durable thinking:
 
-1. Identify the active node.
-2. Decide whether the discussion continues the same node or forks.
-3. Save the new transcript in `conversations/YYYY-MM-DD/`.
-4. Create or update node files.
-5. Update `graph.yaml`.
-6. Add cross-links only when they add real navigational value.
-7. Update `updated_at`.
-8. Run `npm run check` when a Node environment is available.
-9. Run `npm run build` when changing publishing/deployment-sensitive files and verify the generated SSG output.
-10. Commit with a descriptive message.
+1. Apply the **persistence gate** to the new material.
+2. Drop rejected interludes; do not create corpus files for them.
+3. For admitted material, identify the active node if one exists.
+4. Decide whether it continues the same node, creates a meaningful branch, or starts a new root/topic.
+5. Save the admitted high-fidelity thought segment in `conversations/YYYY-MM-DD/`.
+6. Create or update node files.
+7. Update `graph.yaml`.
+8. Add cross-links only when they add real navigational value.
+9. Update `updated_at`.
+10. Run `npm run check` when a Node environment is available.
+11. Run `npm run build` when changing publishing/deployment-sensitive files and verify the generated SSG output.
+12. Commit with a descriptive message.
 
-Routine implementation/debug/deployment chatter is not thought content. Leave it in Git history and engineering docs unless it creates a durable concept or operating rule for future brainstorming.
+Routine implementation/debug/deployment chatter and discussion about this repository's own operation stay in Git history and engineering/protocol documentation. **Do not promote them into the thought corpus merely because they establish a durable repository rule.**
 
 Preferred commit patterns:
 
@@ -475,7 +536,7 @@ Preferred commit patterns:
 content: add branch on AI evaluation
 content: continue real-world data branch
 graph: link creator economy to data provenance
-docs: clarify branching rules
+docs: clarify persistence gate
 viz: improve graph navigation
 ```
 
@@ -534,8 +595,11 @@ Markdown is rendered and sanitized at build time. Public reading pages must not 
 
 ## 16. Data quality rules
 
+### Admit before preserving
+Provenance requirements apply only **after** content passes the persistence gate. Do not preserve low-value material merely to make a host chat session look complete.
+
 ### Preserve provenance
-A conclusion without a source conversation is suspect. Every substantive node should normally have at least one source conversation.
+A conclusion without an admitted source conversation is suspect. Every substantive node should normally have at least one source conversation.
 
 ### Separate fact from inference
 When a node contains external factual claims, keep source URLs/citations in the source conversation or node notes when available.
@@ -544,12 +608,12 @@ When a node contains external factual claims, keep source URLs/citations in the 
 If exact past wording is unavailable, label reconstructed text as a reconstruction rather than presenting it as exact.
 
 ### Do not over-summarize
-If the raw brainstorming conversation exists, keep it. Summaries are navigation aids, not replacements.
+If an admitted thought conversation exists, keep its retained turns high-fidelity. Summaries are navigation aids, not replacements. This does not require preserving rejected or unrelated host-session interludes.
 
 ### Preserve signal density
 Do not add filler, duplicate explanations, keyword-expanded prose, artificial FAQs, or content whose only purpose is SEO/GEO, page length, or polish. When in doubt, omit rather than pad.
 
-Routine engineering chatter is not part of the thought corpus unless it establishes a durable rule or idea.
+Routine engineering chatter and this repository's own design/maintenance discussion are not part of the thought corpus. Durable repository rules belong in protocol/engineering documentation, not in nodes or thought conversations.
 
 ### Do not silently merge branches
 Two similar nodes may later be linked or explicitly merged, but never erase their independent provenance casually.
@@ -573,6 +637,10 @@ Do **not**:
 - commit generated `dist/` output;
 - treat Cloudflare or Astro as the source of truth instead of GitHub thought files;
 - load `src/`, `lib/`, `scripts/`, Astro, or Cloudflare engineering code during a brainstorm-only session without a concrete need;
+- persist content that has not passed the persistence gate;
+- treat every topic change as a thought branch;
+- mirror an entire host chat session into `conversations/` merely because some turns are relevant;
+- persist this repository's own architecture, agent protocol, deployment, visualization, maintenance, or debugging discussion as thought content;
 - persist routine build/deploy/debug chatter as a thought conversation;
 - add filler or duplicate content for SEO, GEO, keywords, length, or perceived completeness.
 
@@ -582,7 +650,8 @@ Do **not**:
 
 A branch is not complete until:
 
-- [ ] raw/high-fidelity conversation is saved;
+- [ ] the material passed the persistence gate;
+- [ ] only the admitted high-fidelity thought segment is saved;
 - [ ] conversation metadata names its parent/fork node;
 - [ ] relevant node exists or is updated;
 - [ ] node has source conversation reference;
@@ -602,7 +671,7 @@ The long-term goal is not to produce a perfect ontology in advance.
 
 The goal is to preserve:
 
-> **conversation → branch → reasoning → conclusion → revision → new branch**
+> **admission → thought conversation → branch/root → reasoning → conclusion → revision → next durable thought**
 
 with enough structure that future AI systems can reconstruct and extend it.
 

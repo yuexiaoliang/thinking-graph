@@ -6,7 +6,7 @@ A persistent, traceable graph of conversations, ideas, branches, cross-links, an
 
 这个仓库保存：
 
-- **完整/高保真对话**：作为思想来源与 provenance；
+- **通过准入的高保真思想对话**：作为思想来源与 provenance；
 - **思想节点**：压缩后的可复用理解；
 - **主分叉与跨话题关系**：保留思想从哪里来、和什么有关；
 - **认知演化**：用 `refines` / `contradicts` 等关系保留变化；
@@ -14,11 +14,14 @@ A persistent, traceable graph of conversations, ideas, branches, cross-links, an
 
 ## 核心原则
 
-1. **文件组织像树，关系结构像图。**
-2. **思想分叉不用 Git branch 表示。**
-3. **同一个思想节点正文只保存一份。**
-4. **conversation = provenance；node = 压缩理解；graph = 拓扑。**
-5. **任何时候不得为了 SEO/GEO、关键词、字数或“完整感”增加冗余内容。**
+1. **先做持久化准入，再判断是否分叉。** 话题变化不等于值得保存；不确定时默认不保存。
+2. **一个聊天 Session 不是一个持久化单元。** 只保存值得未来继续思考的高保真片段，无关插曲可以不进入 corpus。
+3. **文件组织像树，关系结构像图。**
+4. **思想分叉不用 Git branch 表示。**
+5. **同一个思想节点正文只保存一份。**
+6. **conversation = 已准入的 provenance；node = 压缩理解；graph = 拓扑。**
+7. **仓库自身的架构、Agent 协议、部署、可视化和维护不属于思想 corpus。**
+8. **任何时候不得为了 SEO/GEO、关键词、字数或“完整感”增加冗余内容。**
 
 ## 目录
 
@@ -27,7 +30,7 @@ thinking-graph/
 ├── AGENTS.md
 ├── BRAINSTORM.md       # 头脑风暴的最小上下文入口
 ├── graph.yaml
-├── conversations/      # 原始/高保真思想来源
+├── conversations/      # 通过准入的高保真思想来源
 ├── nodes/              # 高信噪比思想节点
 ├── lib/                # 图谱读取、Markdown 渲染与校验
 ├── scripts/            # 图谱校验
@@ -50,7 +53,7 @@ thinking-graph/
 3. 当前 `nodes/<id>.md`
 4. 只有确有必要时才读父节点、关联节点或原始 conversation
 
-正常头脑风暴只修改 `conversations/`、`nodes/`、`graph.yaml`。
+只有通过 **Persistence Gate** 的内容才进入 `conversations/`、`nodes/`、`graph.yaml`。临时问题、闲聊、无关插曲以及仓库自身维护/设计内容不进入思想 corpus。
 
 ## Astro SSG 发布层
 
