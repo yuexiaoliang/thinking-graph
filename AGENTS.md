@@ -504,6 +504,7 @@ The publishing layer adapts to the thought data. Thought data must never be resh
 - Every source conversation gets a static provenance URL: `/conversations/<conversation-id>/`.
 - Conversation pages default to `noindex,follow` so provenance stays accessible without competing with the compressed node page.
 - The home page keeps the interactive graph, but graph nodes must also expose real crawlable `<a href>` links.
+- Keep the explorer progressively enhanced: static node links remain usable without JavaScript; desktop defaults to the graph, mobile to a readable list. Preserve keyboard navigation, modal focus handling, ordinary page scrolling, and URL-restorable filters when changing interactions.
 - Internal links must be derived from real graph structure: primary parent, children, typed relations, backlinks, and source conversations.
 - `graph.yaml` remains the relationship source of truth.
 

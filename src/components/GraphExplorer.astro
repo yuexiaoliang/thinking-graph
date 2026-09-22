@@ -1,478 +1,165 @@
 ---
-import {
-  RELATION_LABELS,
-  thoughtPath,
-  conversationPath
-} from "../../lib/thinking-graph.mjs";
+import { RELATION_LABELS, thoughtPath, conversationPath } from "../../lib/thinking-graph.mjs";
+import { categoryLabel, categoryColor, statusLabel } from "../lib/presentation.js";
 
-const { model } = Astro.props;
-const nodes = model.nodes;
-const nodeMap = model.nodeMap;
-
+const { model, listOnly = false } = Astro.props;
+const { nodes, nodeMap } = model;
 const children = new Map(nodes.map((node) => [node.id, []]));
 for (const node of nodes) {
-  if (node.primary_parent && children.has(node.primary_parent)) {
-    children.get(node.primary_parent).push(node.id);
-  }
+  if (node.primary_parent) children.get(node.primary_parent)?.push(node.id);
 }
-
-const roots = nodes.filter(
-  (node) => !node.primary_parent || !nodeMap.has(node.primary_parent)
-);
-
-const leafGap = 205;
-const top = 90;
-const levelGap = 155;
-let leafCursor = 0;
+const roots = nodes.filter((node) => !node.primary_parent);
 const positions = new Map();
-
+let leafCursor = 0;
 function place(id, depth) {
   const kids = children.get(id) || [];
-  if (!kids.length) {
-    const x = 115 + leafCursor * leafGap;
-    leafCursor += 1;
-    positions.set(id, { x, y: top + depth * levelGap, depth });
-    return x;
-  }
-
-  const xs = kids.map((childId) => place(childId, depth + 1));
-  const x = xs.reduce((sum, value) => sum + value, 0) / xs.length;
-  positions.set(id, { x, y: top + depth * levelGap, depth });
+  const xs = kids.map((child) => place(child, depth + 1));
+  const x = xs.length ? (xs[0] + xs.at(-1)) / 2 : 116 + leafCursor++ * 216;
+  positions.set(id, { x, y: 64 + depth * 94 });
   return x;
 }
-
-roots.forEach((root, index) => {
-  if (index > 0) leafCursor += 1;
-  place(root.id, 0);
-});
-
-const maxDepth = Math.max(0, ...Array.from(positions.values()).map((position) => position.depth));
-const graphWidth = Math.max(1400, 250 + Math.max(1, leafCursor - 1) * leafGap);
-const graphHeight = Math.max(820, 210 + maxDepth * levelGap);
-
-function edgePath(a, b) {
-  const dy = b.y - a.y;
-  const curve = Math.max(40, Math.abs(dy) * 0.45);
-  return (
-    "M " +
-    a.x +
-    " " +
-    (a.y + 30) +
-    " C " +
-    a.x +
-    " " +
-    (a.y + curve) +
-    ", " +
-    b.x +
-    " " +
-    (b.y - curve) +
-    ", " +
-    b.x +
-    " " +
-    (b.y - 30)
-  );
+roots.forEach((root) => place(root.id, 0));
+const graphWidth = Math.max(232, leafCursor * 216 + 16);
+const graphHeight = Math.max(160, ...[...positions.values()].map((p) => p.y + 64));
+function edgePath(source, target) {
+  const a = positions.get(source);
+  const b = positions.get(target);
+  const mid = (a.y + b.y) / 2;
+  return `M ${a.x} ${a.y + 34} C ${a.x} ${mid}, ${b.x} ${mid}, ${b.x} ${b.y - 34}`;
 }
-
-const primaryEdges = nodes
-  .filter((node) => node.primary_parent)
-  .map((node) => ({
-    source: node.primary_parent,
-    target: node.id,
-    d: edgePath(positions.get(node.primary_parent), positions.get(node.id))
-  }));
-
-const crossEdges = model.graph.edges
-  .filter((edge) => edge.type !== "forked_from")
-  .map((edge) => ({
-    ...edge,
-    d: edgePath(positions.get(edge.source), positions.get(edge.target))
-  }));
-
-const categories = Array.from(new Set(nodes.map((node) => node.category))).sort();
-
-const clientNodes = nodes.map((node) => {
-  const relations = model.graph.edges
-    .filter(
-      (edge) =>
-        edge.type !== "forked_from" &&
-        (edge.source === node.id || edge.target === node.id)
-    )
-    .map((edge) => {
-      const outgoing = edge.source === node.id;
-      const otherId = outgoing ? edge.target : edge.source;
-      const other = nodeMap.get(otherId);
-      return {
-        type: edge.type,
-        label: RELATION_LABELS[edge.type] || edge.type,
-        direction: outgoing ? "outgoing" : "incoming",
-        id: otherId,
-        title: other?.title || otherId,
-        reason: edge.reason
-      };
-    });
-
-  const sourceConversations = (node.source_conversations || [])
-    .map((id) => model.conversationMap.get(id))
-    .filter(Boolean)
-    .map((conversation) => ({
-      id: conversation.id,
-      title: conversation.title
-    }));
-
-  return {
-    id: node.id,
-    title: node.title,
-    summary: node.summary,
-    category: node.category,
-    url: thoughtPath(node.id),
-    parent: node.primary_parent
-      ? {
-          id: node.primary_parent,
-          title: nodeMap.get(node.primary_parent)?.title || node.primary_parent,
-          url: thoughtPath(node.primary_parent)
-        }
-      : null,
-    relations,
-    conversations: sourceConversations.map((conversation) => ({
-      ...conversation,
-      url: conversationPath(conversation.id)
-    }))
-  };
-});
-
-const clientPayload = JSON.stringify(clientNodes).replace(/</g, "\\u003c");
+function titleLines(title) {
+  const lines = [""];
+  let width = 0;
+  for (const char of title) {
+    const size = /[\x00-\x7F]/.test(char) ? 0.55 : 1;
+    if (width + size > 10) {
+      if (lines.length === 2) { lines[1] += "…"; break; }
+      lines.push(""); width = 0;
+    }
+    lines[lines.length - 1] += char;
+    width += size;
+  }
+  return lines;
+}
+const categories = [...new Set(nodes.map((node) => node.category))];
+const primaryEdges = nodes.filter((node) => node.primary_parent).map((node) => ({
+  source: node.primary_parent, target: node.id
+}));
+const crossEdges = model.graph.edges.filter((edge) => edge.type !== "forked_from");
+const incomingLabels = {
+  related_to: "相关", supports: "得到支持", contradicts: "矛盾",
+  refines: "被修正", leads_to: "由此引出", depends_on: "被依赖"
+};
+const clientNodes = nodes.map((node) => ({
+  id: node.id, title: node.title, summary: node.summary, category: node.category,
+  categoryLabel: categoryLabel(node.category), color: categoryColor(node.category),
+  url: thoughtPath(node.id), ...positions.get(node.id),
+  parent: node.primary_parent ? {
+    title: nodeMap.get(node.primary_parent).title, url: thoughtPath(node.primary_parent)
+  } : null,
+  children: children.get(node.id).map((id) => ({ title: nodeMap.get(id).title, url: thoughtPath(id) })),
+  relations: crossEdges.filter((edge) => edge.source === node.id || edge.target === node.id).map((edge) => {
+    const outgoing = edge.source === node.id;
+    const otherId = outgoing ? edge.target : edge.source;
+    return {
+      title: nodeMap.get(otherId).title, url: thoughtPath(otherId),
+      label: (outgoing ? RELATION_LABELS[edge.type] : incomingLabels[edge.type]) || edge.type, reason: edge.reason
+    };
+  }),
+  conversations: (node.source_conversations || []).map((id) => ({
+    title: model.conversationMap.get(id).title, url: conversationPath(id)
+  }))
+}));
+const payload = JSON.stringify(clientNodes).replace(/</g, "\\u003c");
 ---
 
-<section class="panel graph-shell" data-thinking-graph>
-  <div class="graph-controls">
-    <input
-      type="search"
-      placeholder="搜索节点标题或摘要…"
-      aria-label="搜索思想节点"
-      data-graph-search
-    />
-    <div class="graph-actions">
-      <select aria-label="按类别筛选" data-graph-category>
-        <option value="all">全部类别</option>
-        {categories.map((category) => <option value={category}>{category}</option>)}
-      </select>
-      <label class="graph-toggle">
-        <input type="checkbox" checked data-graph-cross-toggle />
-        跨话题
-      </label>
-      <button type="button" aria-label="放大" data-graph-zoom-in>＋</button>
-      <button type="button" aria-label="缩小" data-graph-zoom-out>−</button>
-      <button type="button" data-graph-reset>重置</button>
+<section class:list={["explorer", { "catalog-only": listOnly }]} data-thinking-graph data-list-only={String(listOnly)} aria-label={listOnly ? "浏览思想节点" : "探索思想图谱"}>
+  <div class="explorer-heading">
+    <div class="explorer-title"><h2>{listOnly ? "全部节点" : "思想图谱"}</h2><span class="result-count" data-result-count aria-live="polite" aria-atomic="true">{nodes.length} 个节点</span></div>
+    {!listOnly && <div class="view-switch" role="group" aria-label="浏览方式" data-enhanced hidden>
+      <button type="button" data-view="graph" aria-pressed="false" aria-controls="graph-view">图谱</button>
+      <button type="button" data-view="list" aria-pressed="true" aria-controls="list-view">列表</button>
+    </div>}
+  </div>
+
+  <div class="explorer-toolbar" data-enhanced hidden>
+    <div class="search-field">
+      <label class="sr-only" for="node-search">搜索思想节点</label>
+      <input id="node-search" type="search" placeholder="搜索标题、摘要或标签…" autocomplete="off" data-graph-search />
+      <kbd class="search-shortcut" aria-hidden="true">/</kbd>
     </div>
+    <label class="category-field"><span class="sr-only">按类别筛选</span><select data-graph-category>
+      <option value="all">全部主题</option>
+      {categories.map((category) => <option value={category}>{categoryLabel(category)}</option>)}
+    </select></label>
+    <button class="text-button filter-reset" type="button" data-clear-filters hidden>清除筛选</button>
   </div>
 
-  <div class="graph-stage" data-graph-stage>
-    <svg
-      viewBox={"0 0 " + graphWidth + " " + graphHeight}
-      role="img"
-      aria-label="Thinking Graph 交互思想图谱"
-      data-graph-svg
-    >
-      <g data-graph-viewport>
-        <g>
-          {
-            primaryEdges.map((edge) => (
-              <path
-                class="graph-primary-edge graph-edge"
-                d={edge.d}
-                data-source={edge.source}
-                data-target={edge.target}
-              />
-            ))
-          }
-        </g>
-
-        <g class="graph-cross-layer" data-graph-cross-layer>
-          {
-            crossEdges.map((edge) => (
-              <path
-                class="graph-cross-edge graph-edge"
-                d={edge.d}
-                data-source={edge.source}
-                data-target={edge.target}
-              />
-            ))
-          }
-        </g>
-
-        <g>
-          {
-            nodes.map((node) => {
-              const position = positions.get(node.id);
-              const shortTitle =
-                node.title.length > 16 ? node.title.slice(0, 15) + "…" : node.title;
-
-              return (
-                <a
-                  href={thoughtPath(node.id)}
-                  class="graph-node"
-                  data-graph-node
-                  data-id={node.id}
-                  data-category={node.category}
-                  data-search={(node.title + " " + (node.summary || "")).toLowerCase()}
-                  transform={"translate(" + position.x + "," + position.y + ")"}
-                >
-                  <rect x="-88" y="-30" width="176" height="60" rx="13" />
-                  <circle
-                    cx="-72"
-                    cy="-15"
-                    r="5"
-                    fill={
-                      node.category === "talent"
-                        ? "var(--talent)"
-                        : node.category === "employment"
-                          ? "var(--employment)"
-                          : node.category === "data"
-                            ? "var(--data)"
-                            : node.category === "creator-economy"
-                              ? "var(--creator)"
-                              : node.category === "meta"
-                                ? "var(--meta)"
-                                : "var(--future)"
-                    }
-                  />
-                  <text class="node-title" x="0" y="4">{shortTitle}</text>
-                  <text x="0" y="22" font-size="10" fill="var(--muted)">
-                    {node.category}
-                  </text>
-                </a>
-              );
-            })
-          }
-        </g>
-      </g>
-    </svg>
+  <div class="empty-state panel" data-empty-state hidden>
+    <h3>没有找到匹配的节点</h3>
+    <p>试试更短的关键词，或清除主题筛选。</p>
+    <button class="button" type="button" data-clear-filters>查看全部节点</button>
   </div>
 
-  <div class="graph-legend">
-    <span>实线：主父分叉</span>
-    <span>虚线：跨话题关系</span>
-    <span>点击节点预览；“打开完整节点”进入静态页面</span>
+  <div class="thought-grid" id="list-view" data-list-view>
+    {nodes.map((node, index) => <a class="thought-card" href={thoughtPath(node.id)} data-node-card data-id={node.id} data-category={node.category} data-search={[node.title, node.summary, ...node.tags].join(" ").toLowerCase()} style={"--category-color:" + categoryColor(node.category)}>
+      <div class="card-top"><span class="category-label">{categoryLabel(node.category)}</span><span class="card-number">{String(index + 1).padStart(2, "0")}</span></div>
+      <h3>{node.title}</h3>
+      <p>{node.summary}</p>
+      <div class="card-bottom"><span>{statusLabel(node.status)}</span><span class="card-read">阅读节点 <span aria-hidden="true">↗</span></span></div>
+    </a>)}
   </div>
 
-  <aside class="panel graph-detail" data-graph-detail aria-live="polite">
-    <button
-      class="graph-detail-close"
-      type="button"
-      aria-label="关闭节点预览"
-      data-graph-detail-close
-    >
-      ×
-    </button>
-    <h2>选择一个思想节点</h2>
-    <p>节点详情会在这里预览。所有节点同时拥有真实静态 URL，可独立阅读、分享和引用。</p>
-  </aside>
+  {!listOnly && <div class="graph-workspace panel" id="graph-view" data-graph-view hidden>
+    <div class="graph-canvas">
+      <div class="canvas-toolbar">
+        <label class="graph-toggle"><input type="checkbox" checked data-graph-cross-toggle />跨话题关系</label>
+        <button class="text-button touch-pan-toggle" type="button" aria-pressed="false" data-touch-pan>移动画布</button>
+        <span class="canvas-tip">拖动平移 · Ctrl / ⌘ + 滚轮缩放</span>
+      </div>
+      <div class="graph-stage" data-graph-stage>
+        <svg viewBox={`0 0 ${graphWidth} ${graphHeight}`} role="group" aria-label="交互思想图谱" aria-describedby="graph-instructions" tabindex="0" data-graph-svg>
+          <g data-graph-viewport>
+            <g aria-hidden="true">{primaryEdges.map((edge) => <path class="graph-primary-edge graph-edge" d={edgePath(edge.source, edge.target)} data-source={edge.source} data-target={edge.target} />)}</g>
+            <g class="graph-cross-layer" data-graph-cross-layer aria-hidden="true">{crossEdges.map((edge) => <path class="graph-cross-edge graph-edge" d={edgePath(edge.source, edge.target)} data-source={edge.source} data-target={edge.target} />)}</g>
+            <g>{nodes.map((node) => {
+              const pos = positions.get(node.id);
+              const lines = titleLines(node.title);
+              return <a href={thoughtPath(node.id)} class="graph-node" data-graph-node data-id={node.id} aria-label={"预览：" + node.title} transform={`translate(${pos.x},${pos.y})`} style={"--category-color:" + categoryColor(node.category)}>
+                <title>{node.title}</title>
+                <rect x="-96" y="-34" width="192" height="68" rx="10" />
+                <circle cx="-81" cy="-19" r="3.5" />
+                <text class="node-title">{lines.map((line, i) => <tspan x="0" y={lines.length === 1 ? 0 : -9 + i * 18}>{line}</tspan>)}</text>
+                <text class="node-category" x="0" y="25">{categoryLabel(node.category)}</text>
+              </a>;
+            })}</g>
+          </g>
+        </svg>
+        <div class="zoom-controls" role="group" aria-label="画布缩放">
+          <button type="button" aria-label="缩小图谱" data-graph-zoom-out>−</button>
+          <output data-zoom-level aria-label="缩放比例">100%</output>
+          <button type="button" aria-label="放大图谱" data-graph-zoom-in>+</button>
+          <button type="button" data-graph-fit>适应画布</button>
+        </div>
+      </div>
+      <div class="graph-legend"><span><i class="line-sample" aria-hidden="true"></i>主分支</span><span><i class="line-sample cross" aria-hidden="true"></i>跨话题</span><span class="legend-hint">选择节点，查看来路与分支</span></div>
+      <p class="sr-only" id="graph-instructions">Tab 切换节点，Enter 预览。方向键移动画布，加减键缩放，0 恢复全貌。手机上可启用移动画布，再拖动或双指缩放；再次关闭即可滚动页面。</p>
+    </div>
+    <aside class="graph-detail" aria-label="节点预览" data-graph-detail>
+      <div class="detail-placeholder"><span class="eyebrow">从这里开始</span><h3>选择一个思想节点</h3><p>查看当前理解、思考来路和可以继续探索的分支。</p><a href="/thoughts/">浏览全部节点 <span aria-hidden="true">↗</span></a></div>
+    </aside>
+  </div>}
 
-  <script type="application/json" data-graph-data is:inline set:html={clientPayload}></script>
+  {!listOnly && <dialog class="node-dialog" aria-labelledby="dialog-node-title" data-node-dialog>
+    <div class="dialog-header"><span>节点预览</span><button class="button" type="button" data-close-dialog autofocus>关闭</button></div>
+    <div data-dialog-content></div>
+  </dialog>}
+  <p class="sr-only" data-selection-status role="status"></p>
+  <noscript><p class="empty-note">可直接阅读上方节点；启用 JavaScript 后可使用筛选与交互图谱。</p></noscript>
+  <script type="application/json" data-graph-data is:inline set:html={payload}></script>
 </section>
 
 <script>
-  for (const root of document.querySelectorAll("[data-thinking-graph]")) {
-    const dataElement = root.querySelector("[data-graph-data]");
-    const nodes = JSON.parse(dataElement?.textContent || "[]");
-    const nodeMap = new Map(nodes.map((node) => [node.id, node]));
-
-    const search = root.querySelector("[data-graph-search]");
-    const category = root.querySelector("[data-graph-category]");
-    const crossToggle = root.querySelector("[data-graph-cross-toggle]");
-    const crossLayer = root.querySelector("[data-graph-cross-layer]");
-    const detail = root.querySelector("[data-graph-detail]");
-    const svg = root.querySelector("[data-graph-svg]");
-    const viewport = root.querySelector("[data-graph-viewport]");
-    const stage = root.querySelector("[data-graph-stage]");
-
-    let selectedId = null;
-    let scale = 1;
-    let tx = 0;
-    let ty = 0;
-    let pointer = null;
-
-    const isMobile = () => window.matchMedia("(max-width: 860px)").matches;
-
-    function escapeHtml(value) {
-      return String(value ?? "")
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
-    }
-
-    function applyTransform() {
-      viewport?.setAttribute(
-        "transform",
-        "translate(" + tx + " " + ty + ") scale(" + scale + ")"
-      );
-    }
-
-    function renderFilters() {
-      const query = String(search?.value || "").trim().toLowerCase();
-      const selectedCategory = String(category?.value || "all");
-      const visible = new Set();
-
-      root.querySelectorAll("[data-graph-node]").forEach((element) => {
-        const categoryMatches =
-          selectedCategory === "all" || element.dataset.category === selectedCategory;
-        const queryMatches =
-          !query || String(element.dataset.search || "").includes(query);
-        const show = categoryMatches && queryMatches;
-
-        element.classList.toggle("dimmed", !show);
-        element.classList.toggle("search-match", Boolean(query && queryMatches));
-        if (show) visible.add(element.dataset.id);
-      });
-
-      root.querySelectorAll(".graph-edge").forEach((edge) => {
-        const show =
-          visible.has(edge.dataset.source) && visible.has(edge.dataset.target);
-        edge.classList.toggle("dimmed", !show);
-      });
-
-      crossLayer?.classList.toggle("hidden", !crossToggle?.checked);
-    }
-
-    function renderDetail(id) {
-      const node = nodeMap.get(id);
-      if (!node || !detail) return;
-
-      selectedId = id;
-      root.querySelectorAll("[data-graph-node]").forEach((element) => {
-        element.classList.toggle("selected", element.dataset.id === id);
-      });
-
-      const relationLinks = node.relations
-        .slice(0, 6)
-        .map(
-          (relation) =>
-            '<a href="/thoughts/' +
-            encodeURIComponent(relation.id) +
-            '/">' +
-            escapeHtml(relation.label + " · " + relation.title) +
-            "</a>"
-        )
-        .join("");
-
-      const sourceLinks = node.conversations
-        .slice(0, 3)
-        .map(
-          (conversation) =>
-            '<a href="' +
-            escapeHtml(conversation.url) +
-            '">' +
-            escapeHtml("来源 · " + conversation.title) +
-            "</a>"
-        )
-        .join("");
-
-      detail.innerHTML =
-        '<button class="graph-detail-close" type="button" aria-label="关闭节点预览" data-graph-detail-close>×</button>' +
-        "<h2>" +
-        escapeHtml(node.title) +
-        "</h2>" +
-        "<p>" +
-        escapeHtml(node.summary || "") +
-        "</p>" +
-        '<div class="graph-detail-links">' +
-        '<a href="' +
-        escapeHtml(node.url) +
-        '">打开完整节点</a>' +
-        relationLinks +
-        sourceLinks +
-        "</div>";
-
-      detail.querySelector("[data-graph-detail-close]")?.addEventListener("click", () => {
-        detail.classList.remove("open");
-      });
-
-      if (isMobile()) detail.classList.add("open");
-    }
-
-    root.querySelectorAll("[data-graph-node]").forEach((element) => {
-      element.addEventListener("click", (event) => {
-        if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-        event.preventDefault();
-        renderDetail(element.dataset.id);
-      });
-    });
-
-    search?.addEventListener("input", renderFilters);
-    category?.addEventListener("change", renderFilters);
-    crossToggle?.addEventListener("change", renderFilters);
-
-    root.querySelector("[data-graph-zoom-in]")?.addEventListener("click", () => {
-      scale = Math.min(2.8, scale * 1.18);
-      applyTransform();
-    });
-
-    root.querySelector("[data-graph-zoom-out]")?.addEventListener("click", () => {
-      scale = Math.max(0.35, scale * 0.85);
-      applyTransform();
-    });
-
-    root.querySelector("[data-graph-reset]")?.addEventListener("click", () => {
-      scale = 1;
-      tx = 0;
-      ty = 0;
-      applyTransform();
-    });
-
-    svg?.addEventListener(
-      "wheel",
-      (event) => {
-        event.preventDefault();
-        scale = Math.max(0.35, Math.min(2.8, scale * (event.deltaY < 0 ? 1.1 : 0.9)));
-        applyTransform();
-      },
-      { passive: false }
-    );
-
-    svg?.addEventListener("pointerdown", (event) => {
-      if (event.target.closest?.("[data-graph-node]")) return;
-      pointer = {
-        id: event.pointerId,
-        x: event.clientX,
-        y: event.clientY,
-        tx,
-        ty
-      };
-      svg.setPointerCapture(event.pointerId);
-    });
-
-    svg?.addEventListener("pointermove", (event) => {
-      if (!pointer || pointer.id !== event.pointerId || !stage) return;
-      const rect = stage.getBoundingClientRect();
-      const viewBox = svg.viewBox.baseVal;
-      tx = pointer.tx + (event.clientX - pointer.x) * (viewBox.width / rect.width);
-      ty = pointer.ty + (event.clientY - pointer.y) * (viewBox.height / rect.height);
-      applyTransform();
-    });
-
-    const releasePointer = (event) => {
-      if (!pointer || pointer.id !== event.pointerId) return;
-      pointer = null;
-      try {
-        svg?.releasePointerCapture(event.pointerId);
-      } catch {}
-    };
-
-    svg?.addEventListener("pointerup", releasePointer);
-    svg?.addEventListener("pointercancel", releasePointer);
-
-    svg?.addEventListener("click", (event) => {
-      if (!event.target.closest?.("[data-graph-node]") && isMobile()) {
-        detail?.classList.remove("open");
-      }
-    });
-
-    root.querySelector("[data-graph-detail-close]")?.addEventListener("click", () => {
-      detail?.classList.remove("open");
-    });
-
-    renderFilters();
-  }
+  import { initExplorer } from "../scripts/graph-explorer.js";
+  document.querySelectorAll("[data-thinking-graph]").forEach(initExplorer);
 </script>

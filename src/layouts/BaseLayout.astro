@@ -13,6 +13,8 @@ const {
 const fullTitle = title === "Thinking Graph" ? title : title + " | Thinking Graph";
 const canonical = Astro.site ? new URL(canonicalPath, Astro.site).toString() : null;
 const structuredData = Array.isArray(jsonLd) ? jsonLd.filter(Boolean) : [jsonLd].filter(Boolean);
+const isHome = Astro.url.pathname === "/";
+const isThought = Astro.url.pathname.startsWith("/thoughts/");
 ---
 
 <!doctype html>
@@ -30,6 +32,12 @@ const structuredData = Array.isArray(jsonLd) ? jsonLd.filter(Boolean) : [jsonLd]
     {canonical && <meta property="og:url" content={canonical} />}
     {canonical && <link rel="canonical" href={canonical} />}
     <link rel="alternate" type="text/plain" href="/llms.txt" title="Thinking Graph for AI agents" />
+    <script is:inline>
+      try {
+        const theme = localStorage.getItem("thinking-graph-theme");
+        if (theme === "light" || theme === "dark") document.documentElement.dataset.theme = theme;
+      } catch {}
+    </script>
     {
       structuredData.map((data) => (
         <script type="application/ld+json" is:inline set:html={JSON.stringify(data)}></script>
@@ -37,22 +45,45 @@ const structuredData = Array.isArray(jsonLd) ? jsonLd.filter(Boolean) : [jsonLd]
     }
   </head>
   <body>
+    <a class="skip-link" href="#main-content">跳到主要内容</a>
     <header class="site-header">
       <nav class="site-nav" aria-label="主导航">
-        <a class="site-brand" href="/">Thinking Graph</a>
+        <a class="site-brand" href="/">Thinking<span>Graph</span><span class="brand-dot" aria-hidden="true">.</span></a>
         <div class="site-links">
-          <a href="/thoughts/">思想节点</a>
-          <a href="/llms.txt">AI 索引</a>
+          <a href="/" aria-current={isHome ? "page" : undefined}>图谱</a>
+          <a href="/thoughts/" aria-current={isThought ? "page" : undefined}>节点</a>
+          <button class="theme-toggle" type="button" data-theme-toggle aria-label="切换显示主题" hidden>主题</button>
         </div>
       </nav>
     </header>
 
-    <main class="site-main">
+    <main class="site-main" id="main-content" tabindex="-1">
       <slot />
     </main>
 
     <footer class="site-footer">
-      Thinking Graph · 以高信噪比思想数据为源，发布层由静态构建派生。
+      <span>Thinking Graph <span class="footer-divider">/</span> 思考持续生长</span>
+      <a href="/llms.txt">AI 索引 <span aria-hidden="true">↗</span></a>
     </footer>
+    <script>
+      const toggle = document.querySelector<HTMLButtonElement>("[data-theme-toggle]");
+      const preference = window.matchMedia("(prefers-color-scheme: dark)");
+      const currentTheme = () => document.documentElement.dataset.theme || (preference.matches ? "dark" : "light");
+      function updateThemeButton() {
+        if (!toggle) return;
+        const dark = currentTheme() === "dark";
+        toggle.hidden = false;
+        toggle.textContent = dark ? "浅色" : "深色";
+        toggle.setAttribute("aria-label", dark ? "切换到浅色主题" : "切换到深色主题");
+      }
+      toggle?.addEventListener("click", () => {
+        const theme = currentTheme() === "dark" ? "light" : "dark";
+        document.documentElement.dataset.theme = theme;
+        try { localStorage.setItem("thinking-graph-theme", theme); } catch {}
+        updateThemeButton();
+      });
+      preference.addEventListener("change", updateThemeButton);
+      updateThemeButton();
+    </script>
   </body>
 </html>

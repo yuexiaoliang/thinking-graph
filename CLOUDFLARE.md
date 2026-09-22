@@ -66,6 +66,10 @@ This enables:
 
 Without `SITE_URL`, the site still builds and serves correctly, but it deliberately does not invent a production origin or sitemap.
 
+## UI release checks
+
+The responsive explorer and theme controls are client-side enhancements to the same static routes; no Worker bindings or runtime API are required. Before releasing UI changes, preview the built output at phone and desktop widths and verify filtering, graph selection, node-to-source navigation, keyboard focus, and the static node-list fallback. Query parameters restore the explorer state; canonical paths remain unchanged.
+
 ## Node version
 
 The repository includes:

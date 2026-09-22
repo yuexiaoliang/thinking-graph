@@ -91,13 +91,15 @@ const description =
       </div>
 
       <div class="provenance-notice">
-        这是原始/高保真来源对话，用于追溯思想如何形成；搜索索引的主要内容面是对应的思想节点。
+        来源对话 · 保留思想形成时的讨论与推理过程。
       </div>
+
+      <a class="reading-jump" href="#source-relations">查看相关节点 <span aria-hidden="true">↓</span></a>
 
       <div class="markdown" set:html={conversation.html}></div>
     </article>
 
-    <aside class="panel side-card" aria-label="来源关系">
+    <aside class="panel side-card" id="source-relations" aria-label="来源关系" tabindex="-1">
       {
         relatedNodes.length > 0 && (
           <section class="side-section">

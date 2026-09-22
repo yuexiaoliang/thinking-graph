@@ -25,15 +25,16 @@ const jsonLd = Astro.site
   canonicalPath="/"
   jsonLd={jsonLd}
 >
-  <section class="hero">
-    <h1>Thinking Graph</h1>
-    <p>
-      用图结构保存长期头脑风暴：原始对话负责 provenance，节点负责高信噪比理解，关系负责可追溯的分叉与交叉。
-    </p>
+  <section class="hero home-hero">
+    <div>
+      <span class="eyebrow">想法 · 连接 · 演化</span>
+      <h1>探索思想之间的联系<span class="accent-text">。</span></h1>
+      <p>从一个节点开始，追溯来路，找到下一步值得思考的问题。</p>
+    </div>
     <div class="stats" aria-label="图谱统计">
-      <span class="stat">{model.nodes.length} 个思想节点</span>
-      <span class="stat">{model.graph.edges.length} 条关系</span>
-      <span class="stat">{model.conversations.length} 段来源对话</span>
+      <div class="stat"><strong>{model.nodes.length}</strong><span>思想节点</span></div>
+      <div class="stat"><strong>{model.graph.edges.length}</strong><span>关系连接</span></div>
+      <div class="stat"><strong>{model.conversations.length}</strong><span>来源对话</span></div>
     </div>
   </section>
 

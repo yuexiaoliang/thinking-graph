@@ -1,5 +1,6 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
+import { categoryLabel, categoryColor, statusLabel } from "../../lib/presentation.js";
 import {
   RELATION_LABELS,
   conversationPath,
@@ -160,22 +161,25 @@ const machineRelations = {
 
   <div class="content-layout">
     <article class="panel article-card">
+      <a class="back-link" href={"/?node=" + encodeURIComponent(node.id)}>在图谱中定位 <span aria-hidden="true">↗</span></a>
       <h1 class="page-title">{node.title}</h1>
       <p class="page-summary">{node.summary}</p>
       <div class="page-meta">
-        <span class="meta-chip">{node.category}</span>
-        <span class="meta-chip">{node.status}</span>
+        <span class="meta-chip category-chip" style={"--category-color:" + categoryColor(node.category)}>{categoryLabel(node.category)}</span>
+        <span class="meta-chip">{statusLabel(node.status)}</span>
         {node.tags.map((tag) => <span class="meta-chip">{tag}</span>)}
       </div>
+
+      <a class="reading-jump" href="#node-relations">查看分支与来源 <span aria-hidden="true">↓</span></a>
 
       <div class="markdown" set:html={node.html}></div>
     </article>
 
-    <aside class="panel side-card" aria-label="图谱关系">
+    <aside class="panel side-card" id="node-relations" aria-label="图谱关系" tabindex="-1">
       {
         parent && (
           <section class="side-section">
-            <h2>主父节点</h2>
+            <h2>思考起点</h2>
             <div class="link-list">
               <a href={thoughtPath(parent.id)}>{parent.title}</a>
             </div>
@@ -186,7 +190,7 @@ const machineRelations = {
       {
         children.length > 0 && (
           <section class="side-section">
-            <h2>子分支</h2>
+            <h2>继续探索</h2>
             <div class="link-list">
               {children.map((child) => <a href={thoughtPath(child.id)}>{child.title}</a>)}
             </div>
@@ -215,7 +219,7 @@ const machineRelations = {
       {
         outgoing.length > 0 && (
           <section class="side-section">
-            <h2>向外关系</h2>
+            <h2>关联思考</h2>
             <div class="link-list">
               {
                 outgoing.map((item) => (
