@@ -98,6 +98,9 @@ The visualizer must read this data. It must not maintain a second hand-written r
 /
 ├── AGENTS.md
 ├── README.md
+├── CLOUDFLARE.md
+├── package.json
+├── wrangler.jsonc
 ├── graph.yaml
 ├── conversations/
 │   └── YYYY-MM-DD/
@@ -110,8 +113,21 @@ The visualizer must read this data. It must not maintain a second hand-written r
 ├── schema/
 │   ├── README.md
 │   └── graph.schema.json
+├── scripts/
+│   └── build-site.mjs
 └── visualizer/
     └── index.html
+
+Generated locally/CI (never committed):
+
+```text
+dist/
+├── index.html
+├── graph.yaml
+├── nodes/
+├── conversations/
+└── 404.html
+```
 ```
 
 Do not create empty placeholder folders. Git does not preserve empty directories.
@@ -406,8 +422,9 @@ For every meaningful new discussion:
 5. Update `graph.yaml`.
 6. Add cross-links only when they add real navigational value.
 7. Update `updated_at`.
-8. Verify the visualizer still loads.
-9. Commit with a descriptive message.
+8. Run `npm run check` when a Node environment is available.
+9. Run `npm run build` when changing deployment/build-sensitive files and verify the visualizer output.
+10. Commit with a descriptive message.
 
 Preferred commit patterns:
 
@@ -438,7 +455,16 @@ It must:
 
 It must not contain a manually duplicated copy of the graph topology.
 
-If the schema changes, update the visualizer and schema docs in the same change.
+The repository uses a thin static build:
+
+- source visualizer: `visualizer/index.html`;
+- canonical graph: `graph.yaml`;
+- build command: `npm run build`;
+- generated deployment output: `dist/`.
+
+The build script validates graph integrity before copying source content into `dist/`.
+
+If the schema changes, update the visualizer, build validation, and schema docs in the same change.
 
 ---
 
@@ -474,7 +500,9 @@ Do **not**:
 - change stable node IDs casually;
 - flatten all discussion into one giant markdown file;
 - create an “archive” that removes old thinking from the active provenance graph;
-- fabricate missing historical conversation.
+- fabricate missing historical conversation;
+- commit generated `dist/` output;
+- treat Cloudflare as the source of truth instead of GitHub source files.
 
 ---
 
@@ -490,6 +518,7 @@ A branch is not complete until:
 - [ ] `primary_parent` is valid;
 - [ ] meaningful cross-links are recorded;
 - [ ] open questions / Continue From Here are present;
+- [ ] `npm run check` passes when tooling is available;
 - [ ] visualizer can render the graph;
 - [ ] change is committed.
 
@@ -506,3 +535,62 @@ The goal is to preserve:
 with enough structure that future AI systems can reconstruct and extend it.
 
 When forced to choose between a neat structure and preserving provenance, preserve provenance.
+
+
+---
+
+## 20. Build and deployment contract
+
+The deployment target is **Cloudflare Workers Static Assets**.
+
+### Source of truth
+
+GitHub source files remain canonical:
+
+- `graph.yaml`
+- `nodes/`
+- `conversations/`
+- `visualizer/`
+
+Cloudflare is only a deployment/serving layer.
+
+### Commands
+
+```bash
+npm run check
+npm run build
+npm run dev
+npm run deploy
+```
+
+### Cloudflare configuration
+
+`wrangler.jsonc` points Static Assets at:
+
+```text
+./dist
+```
+
+Cloudflare Workers Builds should use:
+
+```text
+Build command:  npm run build
+Deploy command: npx wrangler deploy
+Production branch: main
+```
+
+### Build behavior
+
+`scripts/build-site.mjs` must fail before deployment when graph integrity is broken, including missing parent nodes, missing node files, missing source conversations, invalid relation endpoints, or unknown relation types.
+
+### Generated files
+
+`dist/` is disposable and ignored by Git. Never edit it as source and never commit it.
+
+If build/deployment behavior changes, update all of the following together:
+
+1. `scripts/build-site.mjs`
+2. `package.json`
+3. `wrangler.jsonc` when applicable
+4. `CLOUDFLARE.md`
+5. this section of `AGENTS.md`
