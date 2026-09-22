@@ -34,7 +34,7 @@ thinking-graph/
 ├── schema/             # 数据格式与字段约定
 ├── scripts/
 │   └── build-site.mjs  # 校验图谱并生成 dist/
-└── visualizer/         # 交互式图谱源文件，读取 graph.yaml
+└── visualizer/         # 交互式图谱 + 站内 Markdown 阅读器 + 移动端 UX
 ```
 
 ## 新 Agent 从哪里开始
@@ -78,10 +78,15 @@ npm run build
 dist/
 ├── index.html
 ├── graph.yaml
+├── content-index.json  # build 自动生成：conversation id -> Markdown 路径
+├── enhancements.css
+├── enhancements.js
 ├── nodes/
 ├── conversations/
 └── 404.html
 ```
+
+可视化支持直接在页面内阅读节点笔记与来源对话 Markdown，不再跳转到原始 `.md` 文件；移动端使用底部节点详情面板和全屏阅读器。
 
 本地用 Cloudflare Wrangler 预览：
 
