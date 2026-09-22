@@ -158,6 +158,8 @@ async function build() {
   await mkdir(dist, { recursive: true });
 
   await cp(path.join(root, "visualizer", "index.html"), path.join(dist, "index.html"));
+  await cp(path.join(root, "visualizer", "enhancements.css"), path.join(dist, "enhancements.css"));
+  await cp(path.join(root, "visualizer", "enhancements.js"), path.join(dist, "enhancements.js"));
   await cp(path.join(root, "graph.yaml"), path.join(dist, "graph.yaml"));
   await cp(path.join(root, "nodes"), path.join(dist, "nodes"), { recursive: true });
   await cp(path.join(root, "conversations"), path.join(dist, "conversations"), { recursive: true });
