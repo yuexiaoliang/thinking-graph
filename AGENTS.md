@@ -602,3 +602,89 @@ If build/deployment behavior changes, update all of the following together:
 3. `wrangler.jsonc` when applicable
 4. `CLOUDFLARE.md`
 5. this section of `AGENTS.md`
+
+
+---
+
+## 21. Atomic Git commit and deployment contract
+
+Cloudflare builds are triggered by updates to `main`. Therefore repository writes must preserve **logical-change atomicity**.
+
+### Core rule
+
+> One logical change set = one Git commit = one `main` ref update = one Cloudflare build.
+
+A logical change set may include many files, such as:
+
+```text
+conversation
++ node
++ graph.yaml
++ visualizer
++ build scripts
++ docs
+```
+
+Those files must reach `main` together as one complete state.
+
+### Required write path for agents
+
+For agent-managed updates, prefer the Git Data flow and do not perform a sequence of Contents API writes directly against `main`.
+
+Required sequence:
+
+```text
+read current main ref
+        ↓
+read current base tree
+        ↓
+prepare every changed file completely
+        ↓
+create_blob for each changed file
+        ↓
+create one tree based on current tree
+        ↓
+create one commit with current main as parent
+        ↓
+re-check main has not moved
+        ↓
+update_ref(main) exactly once, force=false
+```
+
+The `create_blob`, `create_tree`, and `create_commit` steps do not publish an incomplete state because the new objects are not reachable from `main` until the final ref update.
+
+### Race/conflict rule
+
+Immediately before updating `main`, verify that the branch still points to the parent SHA used to create the commit.
+
+If `main` moved:
+
+1. **do not force-update**;
+2. do not publish the stale commit;
+3. read the new head/tree;
+4. reconcile/reapply the logical change set;
+5. create a new commit against the new parent.
+
+### Prohibited deployment patterns
+
+Agents must not:
+
+- call `create_file` / `update_file` repeatedly on `main` for one logical change;
+- publish intermediate states merely because one file is ready;
+- use `force=true` to bypass a moved `main`;
+- split one coherent feature/content update into many deployment-triggering commits unless the user explicitly wants separate releases.
+
+### Single-file changes
+
+A truly independent one-file change may still be one commit, but agent automation should default to the same Git Data atomic flow so the publishing behavior stays consistent.
+
+### Why this matters
+
+The repository is connected to Cloudflare deployment. Multiple implementation-detail commits for one feature would otherwise cause:
+
+- redundant build queue entries;
+- unnecessary deployment latency;
+- intermediate incomplete versions becoming deployable;
+- noisy Git history.
+
+Treat `main` as a release boundary, not as a scratchpad.

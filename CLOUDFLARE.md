@@ -113,3 +113,16 @@ Agents should modify source files only:
 - schemas/docs/scripts as needed
 
 Do **not** commit `dist/`. It is generated during CI/deployment and is intentionally ignored by Git.
+
+
+## Build trigger hygiene
+
+The production branch is `main`, so every update to that ref can trigger a Cloudflare build.
+
+Repository automation therefore follows:
+
+> **one logical change = one commit = one main ref update = one build**
+
+For multi-file work, agents must prepare all blobs and one tree/commit first, then update `main` exactly once. Do not use repeated per-file Contents API commits for one feature.
+
+Before the final ref update, automation must verify that `main` still points to the expected parent commit. If it moved, abort the publish step and reconcile against the new head. Never force-push to bypass this safety check.

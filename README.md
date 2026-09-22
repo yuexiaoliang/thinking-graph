@@ -110,3 +110,20 @@ Cloudflare 控制台的具体连接步骤见 **[CLOUDFLARE.md](./CLOUDFLARE.md)*
 ## 状态
 
 这是 v0.1：先把数据模型、分叉规则、第一批对话和交互式可视化骨架固定下来，后续再逐步自动化采集、分叉识别和图谱更新。
+
+
+## 提交与部署原子性
+
+`main` 是 Cloudflare 的发布边界。仓库维护遵循：
+
+> **一次完整逻辑变更 = 一个 Git commit = 一次 main 更新 = 一次 Cloudflare 构建。**
+
+即使一次讨论同时修改 `conversations/`、`nodes/`、`graph.yaml`、可视化和文档，也应先完整准备并校验，再作为一个原子 commit 发布。
+
+Agent 的标准写入流程是：
+
+```text
+blobs → tree → commit → update_ref(main) once
+```
+
+禁止为了逐个写文件而连续更新 `main`，避免产生大量重复 Cloudflare Build 和中间半完成版本。详细规则见 [AGENTS.md](./AGENTS.md)。
