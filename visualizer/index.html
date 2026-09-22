@@ -1,0 +1,805 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Thinking Graph</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #0b1020;
+      --panel: #121a2e;
+      --panel-2: #18233c;
+      --text: #eef3ff;
+      --muted: #9aa8c7;
+      --border: #2b3858;
+      --accent: #79a8ff;
+      --accent-soft: rgba(121, 168, 255, 0.14);
+      --edge: #6d7891;
+      --cross: #a78bfa;
+      --talent: #60a5fa;
+      --employment: #f59e0b;
+      --data: #34d399;
+      --creator: #f472b6;
+      --meta: #a78bfa;
+      --future: #e5e7eb;
+    }
+
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #f7f9fc;
+        --panel: #ffffff;
+        --panel-2: #f1f5fb;
+        --text: #15213a;
+        --muted: #65728b;
+        --border: #d8e0ee;
+        --accent: #2563eb;
+        --accent-soft: rgba(37, 99, 235, 0.1);
+        --edge: #8c98ad;
+        --cross: #7c3aed;
+        --talent: #2563eb;
+        --employment: #d97706;
+        --data: #059669;
+        --creator: #db2777;
+        --meta: #7c3aed;
+        --future: #334155;
+      }
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    a { color: var(--accent); }
+
+    .app {
+      max-width: 1500px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    .topbar {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      font-size: clamp(22px, 3vw, 34px);
+      line-height: 1.15;
+      margin: 0 0 8px;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      max-width: 760px;
+      line-height: 1.6;
+      font-size: 14px;
+    }
+
+    .status {
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 340px;
+      gap: 16px;
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+    }
+
+    .graph-panel {
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      padding: 12px;
+      border-bottom: 1px solid var(--border);
+      align-items: center;
+    }
+
+    input[type="search"], select, button {
+      color: var(--text);
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      min-height: 40px;
+      font: inherit;
+    }
+
+    input[type="search"] {
+      min-width: 220px;
+      flex: 1;
+      padding: 0 12px;
+      font-size: 16px;
+    }
+
+    select { padding: 0 10px; }
+    button { padding: 0 12px; cursor: pointer; }
+    button:hover { border-color: var(--accent); }
+    button:focus-visible,
+    input:focus-visible,
+    select:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .switch {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 13px;
+      min-height: 40px;
+    }
+
+    .switch input { width: 18px; height: 18px; }
+
+    .canvas-wrap {
+      position: relative;
+      height: min(72vh, 850px);
+      min-height: 540px;
+      overflow: hidden;
+      touch-action: none;
+      background:
+        linear-gradient(to right, color-mix(in srgb, var(--border) 32%, transparent) 1px, transparent 1px),
+        linear-gradient(to bottom, color-mix(in srgb, var(--border) 32%, transparent) 1px, transparent 1px);
+      background-size: 28px 28px;
+    }
+
+    svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+      user-select: none;
+    }
+
+    .edge-primary {
+      stroke: var(--edge);
+      stroke-width: 2;
+      opacity: .72;
+    }
+
+    .edge-cross {
+      stroke: var(--cross);
+      stroke-width: 1.7;
+      stroke-dasharray: 7 6;
+      opacity: .58;
+    }
+
+    .node rect {
+      fill: var(--panel-2);
+      stroke: var(--border);
+      stroke-width: 1.4;
+      rx: 13;
+    }
+
+    .node:hover rect,
+    .node.selected rect {
+      stroke: var(--accent);
+      stroke-width: 2.3;
+    }
+
+    .node.search-match rect {
+      fill: var(--accent-soft);
+      stroke: var(--accent);
+    }
+
+    .node.dimmed { opacity: .18; }
+
+    .node text {
+      fill: var(--text);
+      pointer-events: none;
+      text-anchor: middle;
+    }
+
+    .node .title {
+      font-size: 13px;
+      font-weight: 650;
+    }
+
+    .node .category-dot {
+      stroke: none;
+    }
+
+    .side {
+      padding: 16px;
+      position: sticky;
+      top: 16px;
+    }
+
+    .side h2 {
+      font-size: 18px;
+      margin: 0 0 8px;
+    }
+
+    .meta {
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 14px;
+      word-break: break-word;
+    }
+
+    .summary {
+      line-height: 1.65;
+      font-size: 14px;
+      margin: 0 0 18px;
+    }
+
+    .section {
+      border-top: 1px solid var(--border);
+      padding-top: 14px;
+      margin-top: 14px;
+    }
+
+    .section h3 {
+      margin: 0 0 8px;
+      font-size: 12px;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    ul {
+      margin: 0;
+      padding-left: 18px;
+      line-height: 1.6;
+      font-size: 13px;
+    }
+
+    .relation {
+      margin: 8px 0;
+      padding: 9px 10px;
+      border-radius: 10px;
+      background: var(--panel-2);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .relation strong { color: var(--accent); }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px 16px;
+      padding: 10px 12px;
+      color: var(--muted);
+      font-size: 12px;
+      border-top: 1px solid var(--border);
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .line {
+      width: 28px;
+      height: 0;
+      border-top: 2px solid var(--edge);
+    }
+
+    .line.cross {
+      border-top-style: dashed;
+      border-color: var(--cross);
+    }
+
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+
+    .empty {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .error {
+      margin: 16px;
+      padding: 14px;
+      border: 1px solid #ef4444;
+      border-radius: 12px;
+      color: #ef4444;
+      line-height: 1.55;
+      font-size: 13px;
+    }
+
+    @media (max-width: 900px) {
+      .app { padding: 14px; }
+      .layout { grid-template-columns: 1fr; }
+      .side { position: static; }
+      .canvas-wrap { min-height: 500px; height: 64vh; }
+      .status { white-space: normal; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <div class="topbar">
+      <div>
+        <h1>Thinking Graph</h1>
+        <div class="subtitle">
+          一张可追溯的思想图谱：实线表示主父分叉，虚线表示跨话题关系。点击节点查看摘要、来源与继续入口。
+        </div>
+      </div>
+      <div id="status" class="status">正在读取 graph.yaml…</div>
+    </div>
+
+    <div class="layout">
+      <section class="panel graph-panel" aria-label="思想图谱">
+        <div class="controls">
+          <input id="search" type="search" placeholder="搜索节点标题或摘要…" aria-label="搜索节点" />
+          <select id="category" aria-label="按类别筛选">
+            <option value="all">全部类别</option>
+          </select>
+          <label class="switch">
+            <input id="crossToggle" type="checkbox" checked />
+            显示跨话题关系
+          </label>
+          <button id="zoomIn" type="button" aria-label="放大">＋</button>
+          <button id="zoomOut" type="button" aria-label="缩小">－</button>
+          <button id="reset" type="button">重置视图</button>
+        </div>
+
+        <div id="canvas" class="canvas-wrap">
+          <svg id="graph" viewBox="0 0 1400 900" role="img" aria-label="Thinking Graph 交互图">
+            <defs>
+              <marker id="arrow-primary" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M0 0 L10 5 L0 10 z" fill="var(--edge)"></path>
+              </marker>
+              <marker id="arrow-cross" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M0 0 L10 5 L0 10 z" fill="var(--cross)"></path>
+              </marker>
+            </defs>
+            <g id="viewport">
+              <g id="primaryEdges"></g>
+              <g id="crossEdges"></g>
+              <g id="nodes"></g>
+            </g>
+          </svg>
+        </div>
+
+        <div class="legend">
+          <span class="legend-item"><span class="line"></span>主父分叉</span>
+          <span class="legend-item"><span class="line cross"></span>跨话题关系</span>
+          <span class="legend-item"><span class="dot"></span>点击节点查看详情</span>
+          <span>滚轮缩放 · 拖拽画布平移</span>
+        </div>
+
+        <div id="error"></div>
+      </section>
+
+      <aside id="detail" class="panel side" aria-live="polite">
+        <div class="empty">
+          选择任意节点查看：主父节点、当前摘要、跨话题关系、来源对话与 Continue From Here。
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <script type="module">
+    const $ = (s) => document.querySelector(s);
+    const svgNS = "http://www.w3.org/2000/svg";
+
+    const state = {
+      data: null,
+      nodes: [],
+      nodeMap: new Map(),
+      positions: new Map(),
+      selected: null,
+      scale: 1,
+      tx: 0,
+      ty: 0,
+      panning: false,
+      startX: 0,
+      startY: 0,
+      startTx: 0,
+      startTy: 0,
+    };
+
+    const categoryColor = {
+      "ai-future": "var(--future)",
+      "talent": "var(--talent)",
+      "employment": "var(--employment)",
+      "data": "var(--data)",
+      "creator-economy": "var(--creator)",
+      "meta": "var(--meta)"
+    };
+
+    function el(name, attrs = {}) {
+      const node = document.createElementNS(svgNS, name);
+      for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, String(v));
+      return node;
+    }
+
+    function depthOf(node, seen = new Set()) {
+      if (!node.primary_parent) return 0;
+      if (seen.has(node.id)) return 0;
+      seen.add(node.id);
+      const parent = state.nodeMap.get(node.primary_parent);
+      return parent ? 1 + depthOf(parent, seen) : 0;
+    }
+
+    function buildPositions() {
+      const children = new Map();
+      state.nodes.forEach(n => children.set(n.id, []));
+      state.nodes.forEach(n => {
+        if (n.primary_parent && children.has(n.primary_parent)) {
+          children.get(n.primary_parent).push(n.id);
+        }
+      });
+
+      const roots = state.nodes.filter(n => !n.primary_parent || !state.nodeMap.has(n.primary_parent));
+      const leafGap = 190;
+      const top = 95;
+      const levelGap = 155;
+      let leafCursor = 0;
+      const positions = new Map();
+
+      function place(id, depth) {
+        const kids = children.get(id) || [];
+        if (!kids.length) {
+          const x = 100 + leafCursor * leafGap;
+          leafCursor += 1;
+          positions.set(id, { x, y: top + depth * levelGap, depth });
+          return x;
+        }
+        const xs = kids.map(k => place(k, depth + 1));
+        const x = xs.reduce((a, b) => a + b, 0) / xs.length;
+        positions.set(id, { x, y: top + depth * levelGap, depth });
+        return x;
+      }
+
+      roots.forEach((r, i) => {
+        if (i > 0) leafCursor += 1;
+        place(r.id, 0);
+      });
+
+      const maxDepth = Math.max(0, ...[...positions.values()].map(p => p.depth));
+      const width = Math.max(1400, 220 + Math.max(1, leafCursor - 1) * leafGap);
+      const height = Math.max(850, 190 + maxDepth * levelGap);
+      $("#graph").setAttribute("viewBox", `0 0 ${width} ${height}`);
+      state.positions = positions;
+    }
+
+    function relationLabel(edge) {
+      const labels = {
+        forked_from: "分叉自",
+        related_to: "相关",
+        supports: "支持",
+        contradicts: "矛盾",
+        refines: "修正",
+        leads_to: "引出",
+        depends_on: "依赖"
+      };
+      return labels[edge.type] || edge.type;
+    }
+
+    function createLine(a, b, cls, marker) {
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const curve = Math.max(40, Math.abs(dy) * 0.45);
+      const path = el("path", {
+        d: `M ${a.x} ${a.y + 29} C ${a.x} ${a.y + curve}, ${b.x} ${b.y - curve}, ${b.x} ${b.y - 29}`,
+        fill: "none",
+        class: cls,
+        "marker-end": `url(#${marker})`
+      });
+      return path;
+    }
+
+    function render() {
+      const primaryLayer = $("#primaryEdges");
+      const crossLayer = $("#crossEdges");
+      const nodeLayer = $("#nodes");
+      primaryLayer.replaceChildren();
+      crossLayer.replaceChildren();
+      nodeLayer.replaceChildren();
+
+      const query = $("#search").value.trim().toLowerCase();
+      const category = $("#category").value;
+      const showCross = $("#crossToggle").checked;
+
+      const visibleByCategory = new Set(
+        state.nodes
+          .filter(n => category === "all" || n.category === category)
+          .map(n => n.id)
+      );
+
+      state.nodes.forEach(n => {
+        if (!n.primary_parent) return;
+        const a = state.positions.get(n.primary_parent);
+        const b = state.positions.get(n.id);
+        if (!a || !b) return;
+        if (!visibleByCategory.has(n.id) && !visibleByCategory.has(n.primary_parent)) return;
+        primaryLayer.appendChild(createLine(a, b, "edge-primary", "arrow-primary"));
+      });
+
+      if (showCross) {
+        (state.data.edges || [])
+          .filter(e => e.type !== "forked_from")
+          .forEach(e => {
+            const a = state.positions.get(e.source);
+            const b = state.positions.get(e.target);
+            if (!a || !b) return;
+            if (!visibleByCategory.has(e.source) && !visibleByCategory.has(e.target)) return;
+            crossLayer.appendChild(createLine(a, b, "edge-cross", "arrow-cross"));
+          });
+      }
+
+      state.nodes.forEach(n => {
+        const p = state.positions.get(n.id);
+        if (!p) return;
+
+        const categoryVisible = visibleByCategory.has(n.id);
+        const text = `${n.title} ${n.summary || ""}`.toLowerCase();
+        const match = query && text.includes(query);
+
+        const g = el("g", {
+          class: [
+            "node",
+            state.selected === n.id ? "selected" : "",
+            match ? "search-match" : "",
+            categoryVisible ? "" : "dimmed",
+            query && !match ? "dimmed" : ""
+          ].filter(Boolean).join(" "),
+          transform: `translate(${p.x},${p.y})`,
+          tabindex: "0",
+          role: "button",
+          "aria-label": n.title
+        });
+
+        const rect = el("rect", { x: -82, y: -29, width: 164, height: 58 });
+        const dot = el("circle", {
+          cx: -67, cy: -14, r: 5,
+          class: "category-dot",
+          fill: categoryColor[n.category] || "var(--accent)"
+        });
+        const title = el("text", { x: 0, y: 4, class: "title" });
+        title.textContent = n.title.length > 15 ? n.title.slice(0, 14) + "…" : n.title;
+        const kind = el("text", { x: 0, y: 21, "font-size": 10, fill: "var(--muted)" });
+        kind.textContent = n.category;
+
+        g.append(rect, dot, title, kind);
+        g.addEventListener("click", (ev) => {
+          ev.stopPropagation();
+          selectNode(n.id);
+        });
+        g.addEventListener("keydown", (ev) => {
+          if (ev.key === "Enter" || ev.key === " ") {
+            ev.preventDefault();
+            selectNode(n.id);
+          }
+        });
+        nodeLayer.appendChild(g);
+      });
+
+      applyTransform();
+    }
+
+    function selectNode(id) {
+      state.selected = id;
+      const n = state.nodeMap.get(id);
+      if (!n) return;
+      render();
+      renderDetail(n);
+    }
+
+    function renderDetail(n) {
+      const edges = (state.data.edges || []).filter(e => e.source === n.id || e.target === n.id);
+      const relations = edges.filter(e => e.type !== "forked_from");
+      const parent = n.primary_parent ? state.nodeMap.get(n.primary_parent) : null;
+
+      const relationHtml = relations.length
+        ? relations.map(e => {
+            const outgoing = e.source === n.id;
+            const otherId = outgoing ? e.target : e.source;
+            const other = state.nodeMap.get(otherId);
+            return `<div class="relation"><strong>${relationLabel(e)}</strong> · ${escapeHtml(other?.title || otherId)}<br><span style="color:var(--muted)">${escapeHtml(e.reason || "")}</span></div>`;
+          }).join("")
+        : '<div class="empty">暂无跨话题关系。</div>';
+
+      const continueHtml = (n.continue || []).length
+        ? `<ul>${n.continue.map(x => `<li>${escapeHtml(x)}</li>`).join("")}</ul>`
+        : '<div class="empty">暂无。</div>';
+
+      const sources = (n.source_conversations || []).length
+        ? `<ul>${n.source_conversations.map(x => `<li><code>${escapeHtml(x)}</code></li>`).join("")}</ul>`
+        : '<div class="empty">暂无来源对话。</div>';
+
+      $("#detail").innerHTML = `
+        <h2>${escapeHtml(n.title)}</h2>
+        <div class="meta">
+          ID: <code>${escapeHtml(n.id)}</code><br>
+          类别: ${escapeHtml(n.category)} · 状态: ${escapeHtml(n.status)}<br>
+          主父节点: ${parent ? escapeHtml(parent.title) : "—"}
+        </div>
+        <p class="summary">${escapeHtml(n.summary || "")}</p>
+
+        <div class="section">
+          <h3>Node file</h3>
+          <a href="../${encodeURI(n.file)}" target="_blank" rel="noreferrer">${escapeHtml(n.file)}</a>
+        </div>
+
+        <div class="section">
+          <h3>Source conversations</h3>
+          ${sources}
+        </div>
+
+        <div class="section">
+          <h3>Cross-topic relations</h3>
+          ${relationHtml}
+        </div>
+
+        <div class="section">
+          <h3>Continue From Here</h3>
+          ${continueHtml}
+        </div>
+      `;
+    }
+
+    function escapeHtml(s) {
+      return String(s)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function applyTransform() {
+      $("#viewport").setAttribute(
+        "transform",
+        `translate(${state.tx} ${state.ty}) scale(${state.scale})`
+      );
+    }
+
+    function clampScale(v) {
+      return Math.min(2.6, Math.max(0.35, v));
+    }
+
+    function zoomBy(factor) {
+      state.scale = clampScale(state.scale * factor);
+      applyTransform();
+    }
+
+    function resetView() {
+      state.scale = 1;
+      state.tx = 0;
+      state.ty = 0;
+      applyTransform();
+    }
+
+    function initPanZoom() {
+      const canvas = $("#canvas");
+      const graph = $("#graph");
+
+      graph.addEventListener("wheel", (ev) => {
+        ev.preventDefault();
+        zoomBy(ev.deltaY < 0 ? 1.1 : 0.9);
+      }, { passive: false });
+
+      graph.addEventListener("pointerdown", (ev) => {
+        if (ev.target.closest?.(".node")) return;
+        state.panning = true;
+        state.startX = ev.clientX;
+        state.startY = ev.clientY;
+        state.startTx = state.tx;
+        state.startTy = state.ty;
+        graph.setPointerCapture(ev.pointerId);
+      });
+
+      graph.addEventListener("pointermove", (ev) => {
+        if (!state.panning) return;
+        const rect = canvas.getBoundingClientRect();
+        const vb = graph.viewBox.baseVal;
+        const sx = vb.width / rect.width;
+        const sy = vb.height / rect.height;
+        state.tx = state.startTx + (ev.clientX - state.startX) * sx;
+        state.ty = state.startTy + (ev.clientY - state.startY) * sy;
+        applyTransform();
+      });
+
+      const end = (ev) => {
+        if (!state.panning) return;
+        state.panning = false;
+        try { graph.releasePointerCapture(ev.pointerId); } catch {}
+      };
+
+      graph.addEventListener("pointerup", end);
+      graph.addEventListener("pointercancel", end);
+    }
+
+    async function boot() {
+      try {
+        const [{ load }, response] = await Promise.all([
+          import("https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/+esm"),
+          fetch("../graph.yaml", { cache: "no-store" })
+        ]);
+
+        if (!response.ok) throw new Error(`graph.yaml HTTP ${response.status}`);
+
+        const text = await response.text();
+        const data = load(text);
+        if (!data || !Array.isArray(data.nodes)) throw new Error("graph.yaml 缺少 nodes[]");
+
+        state.data = data;
+        state.nodes = data.nodes;
+        state.nodeMap = new Map(data.nodes.map(n => [n.id, n]));
+
+        const missingParents = data.nodes
+          .filter(n => n.primary_parent && !state.nodeMap.has(n.primary_parent))
+          .map(n => `${n.id} -> ${n.primary_parent}`);
+        if (missingParents.length) {
+          throw new Error("存在缺失 primary_parent: " + missingParents.join(", "));
+        }
+
+        buildPositions();
+
+        const categories = [...new Set(data.nodes.map(n => n.category))].sort();
+        for (const c of categories) {
+          const option = document.createElement("option");
+          option.value = c;
+          option.textContent = c;
+          $("#category").appendChild(option);
+        }
+
+        $("#search").addEventListener("input", render);
+        $("#category").addEventListener("change", render);
+        $("#crossToggle").addEventListener("change", render);
+        $("#zoomIn").addEventListener("click", () => zoomBy(1.18));
+        $("#zoomOut").addEventListener("click", () => zoomBy(0.85));
+        $("#reset").addEventListener("click", resetView);
+        $("#graph").addEventListener("click", () => {
+          state.selected = null;
+          $("#detail").innerHTML = '<div class="empty">选择任意节点查看：主父节点、当前摘要、跨话题关系、来源对话与 Continue From Here。</div>';
+          render();
+        });
+
+        initPanZoom();
+        render();
+
+        $("#status").textContent = `${data.nodes.length} 个节点 · ${(data.edges || []).length} 条关系 · 更新于 ${data.updated_at || "unknown"}`;
+
+        const preferred = state.nodeMap.get("ai-future") || state.nodes[0];
+        if (preferred) selectNode(preferred.id);
+      } catch (err) {
+        $("#status").textContent = "加载失败";
+        $("#error").innerHTML = `
+          <div class="error">
+            无法读取图谱：${escapeHtml(err?.message || err)}<br><br>
+            请通过 HTTP 服务打开本页面（例如在仓库根目录运行 <code>python -m http.server 8000</code>），
+            不要直接使用 <code>file://</code> 双击打开。
+          </div>
+        `;
+      }
+    }
+
+    boot();
+  </script>
+</body>
+</html>
