@@ -2,6 +2,38 @@
 
 This file is the operating contract for any AI agent or human maintaining this repository.
 
+## 0. Prime directive and work-mode routing
+
+The **primary purpose** of this repository is to be a compact, high-signal, portable substrate for ongoing brainstorming by any AI agent.
+
+The website, visualization, build pipeline, Cloudflare deployment, SEO, and GEO are secondary. They exist to expose the thinking graph; they must never distort or inflate it.
+
+### Content-quality invariant
+
+> **Never add redundant content for any reason.**
+
+Do not add content for SEO/GEO, keywords, length, polish, perceived completeness, or to make the repository look richer.
+
+The only intentional overlap is functional:
+
+- raw conversation = provenance;
+- node = compressed reusable understanding;
+- graph = topology.
+
+Each layer must contain only what belongs to that role. A summary must compress; it must not duplicate its source.
+
+### Choose the mode before reading files
+
+**Brainstorm mode:** read [BRAINSTORM.md](./BRAINSTORM.md), then only the minimum relevant graph/node/conversation context. Do not load engineering code by default.
+
+**Engineering mode:** when the user explicitly asks about the site, build, deployment, schema, visualization, or code, read the relevant engineering sections/files.
+
+**Mixed mode:** start with brainstorm scope and expand into engineering context only when the requested action actually requires it.
+
+If you opened `AGENTS.md` only to continue a thought, this section plus `BRAINSTORM.md` is enough; do not consume the rest of the engineering instructions unless needed.
+
+---
+
 ## 1. Mission
 
 `thinking-graph` is a persistent, portable memory of long-running conversations and evolving ideas.
@@ -401,24 +433,31 @@ This repository should expose cognitive evolution, not hide it.
 
 ## 13. Starting a new AI session
 
-Before answering a request that references this repository:
+Determine the work mode first.
 
-1. Read this `AGENTS.md`.
-2. Read `graph.yaml`.
-3. Locate the requested node.
-4. Read that node file.
-5. Read its source conversation(s) if the user's question depends on exact prior reasoning.
-6. Read the primary-parent chain only as far as necessary.
-7. Read cross-linked nodes only when relevant.
-8. Continue from the existing state instead of re-deriving settled context.
+### Brainstorm-only session
+
+1. Read `BRAINSTORM.md`.
+2. Use `graph.yaml` only to locate the requested/most relevant node.
+3. Read that node.
+4. Expand to parent, related nodes, or source conversations only when the current question requires them.
+5. Do **not** load implementation/deployment files.
 
 If the user says “continue from node X,” node X is the active context anchor.
 
+### Engineering session
+
+Read this full `AGENTS.md`, then only the engineering files required by the requested change.
+
+### Mixed session
+
+Start with the brainstorm-only scope. Load engineering context only when the user asks for an implementation change.
+
 ---
 
-## 14. Adding a new conversation
+## 14. Adding a new brainstorming conversation
 
-For every meaningful new discussion:
+For every meaningful brainstorming discussion:
 
 1. Identify the active node.
 2. Decide whether the discussion continues the same node or forks.
@@ -430,6 +469,8 @@ For every meaningful new discussion:
 8. Run `npm run check` when a Node environment is available.
 9. Run `npm run build` when changing deployment/build-sensitive files and verify the visualizer output.
 10. Commit with a descriptive message.
+
+Routine implementation/debug/deployment chatter is not thought content. Leave it in Git history and engineering docs unless it creates a durable concept or operating rule for future brainstorming.
 
 Preferred commit patterns:
 
@@ -487,7 +528,12 @@ When a node contains external factual claims, keep source URLs/citations in the 
 If exact past wording is unavailable, label reconstructed text as a reconstruction rather than presenting it as exact.
 
 ### Do not over-summarize
-If the raw conversation exists, keep it. Summaries are navigation aids, not replacements.
+If the raw brainstorming conversation exists, keep it. Summaries are navigation aids, not replacements.
+
+### Preserve signal density
+Do not add filler, duplicate explanations, keyword-expanded prose, artificial FAQs, or content whose only purpose is SEO/GEO, page length, or polish. When in doubt, omit rather than pad.
+
+Routine engineering chatter is not part of the thought corpus unless it establishes a durable rule or idea.
 
 ### Do not silently merge branches
 Two similar nodes may later be linked or explicitly merged, but never erase their independent provenance casually.
@@ -510,7 +556,10 @@ Do **not**:
 - fabricate missing historical conversation;
 - commit generated `dist/` output;
 - hard-code conversation file paths in the visualizer when they can be resolved from generated `content-index.json`;
-- treat Cloudflare as the source of truth instead of GitHub source files.
+- treat Cloudflare as the source of truth instead of GitHub source files;
+- load engineering code during a brainstorm-only session without a concrete need;
+- persist routine build/deploy/debug chatter as a thought conversation;
+- add filler or duplicate content for SEO, GEO, keywords, length, or perceived completeness.
 
 ---
 

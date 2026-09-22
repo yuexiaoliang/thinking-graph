@@ -187,7 +187,8 @@ nodes:
     file: nodes/thinking-graph-system.md
     source_conversations:
       - conv-20260922-004
-    summary: 用 GitHub 持久化完整聊天、主分叉、跨话题关系与认知演化，并允许不同 AI 从任意节点接续。
+      - conv-20260922-005
+    summary: 用 GitHub 保存高信噪比的对话、分叉、关系与认知演化，让不同 AI 能用最小必要上下文从任意节点继续。
     continue:
       - 如何自动识别分叉并提交？
       - 如何让不同 AI 共享统一的读写协议？

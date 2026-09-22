@@ -2,6 +2,8 @@
 
 A persistent, traceable graph of conversations, ideas, branches, cross-links, and evolving thoughts.
 
+> **核心不是网站，而是高信噪比、可移植的头脑风暴上下文。** 可视化、SEO、GEO、构建和部署都只是附加层，不能反向增加冗余内容。
+
 这个仓库不是普通的聊天备份，也不是一棵严格的树。它保存：
 
 - **完整对话**：尽量高保真保存原始聊天，不用摘要替代历史。
@@ -24,6 +26,7 @@ A persistent, traceable graph of conversations, ideas, branches, cross-links, an
 ```text
 thinking-graph/
 ├── AGENTS.md
+├── BRAINSTORM.md       # 头脑风暴的最小上下文入口
 ├── README.md
 ├── CLOUDFLARE.md       # Cloudflare Workers 部署说明
 ├── package.json
@@ -37,14 +40,20 @@ thinking-graph/
 └── visualizer/         # 交互式图谱 + 站内 Markdown 阅读器 + 移动端 UX
 ```
 
-## 新 Agent 从哪里开始
+## 头脑风暴模式
 
-请先阅读 **[AGENTS.md](./AGENTS.md)**。然后：
+如果只是继续思考/讨论，**不要读取工程代码**。
 
-1. 读 `graph.yaml` 获取全局拓扑。
-2. 根据用户指定的分支读取对应 `nodes/*.md`。
-3. 沿节点中的 `source_conversations` 读取必要原始聊天。
-4. 从该节点的 **Continue From Here** 继续，而不是重新从头解释。
+最小读取路径：
+
+1. **[BRAINSTORM.md](./BRAINSTORM.md)**
+2. `graph.yaml` 中与当前话题有关的部分
+3. 当前 `nodes/<id>.md`
+4. 只有确实需要时才读取父节点、关联节点或原始 conversation
+
+正常头脑风暴只修改 `conversations/`、`nodes/`、`graph.yaml`。不应因为一次讨论去加载或修改 `visualizer/`、`scripts/`、Cloudflare 或构建配置。
+
+如果用户明确要求改网站、部署、构建或可视化，再进入**工程模式**并阅读完整 **[AGENTS.md](./AGENTS.md)** 和对应代码。
 
 ## 当前第一组讨论
 
