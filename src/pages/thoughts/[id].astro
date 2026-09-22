@@ -119,6 +119,9 @@ const jsonLd = canonical
     ]
   : [];
 
+const relationCount = (parent ? 1 : 0) + children.length + outgoing.length + incoming.length;
+const sourceCount = conversations.length;
+
 const machineRelations = {
   id: node.id,
   primary_parent: parent?.id || null,
@@ -151,31 +154,54 @@ const machineRelations = {
     set:html={JSON.stringify(machineRelations)}
   ></script>
 
-  <nav class="breadcrumb" aria-label="面包屑">
-    <a href="/">Thinking Graph</a>
-    <span>›</span>
-    <a href="/thoughts/">思想节点</a>
-    <span>›</span>
-    <span>{node.title}</span>
-  </nav>
+  <div class="page-toolbar">
+    <nav class="breadcrumb" aria-label="面包屑">
+      <a href="/">图谱</a>
+      <span aria-hidden="true">/</span>
+      <a href="/thoughts/">节点</a>
+    </nav>
+    <a class="graph-locate" href={"/?node=" + encodeURIComponent(node.id)}>
+      在图谱中定位 <span aria-hidden="true">↗</span>
+    </a>
+  </div>
 
   <div class="content-layout">
     <article class="panel article-card">
-      <a class="back-link" href={"/?node=" + encodeURIComponent(node.id)}>在图谱中定位 <span aria-hidden="true">↗</span></a>
-      <h1 class="page-title">{node.title}</h1>
-      <p class="page-summary">{node.summary}</p>
-      <div class="page-meta">
-        <span class="meta-chip category-chip" style={"--category-color:" + categoryColor(node.category)}>{categoryLabel(node.category)}</span>
-        <span class="meta-chip">{statusLabel(node.status)}</span>
-        {node.tags.map((tag) => <span class="meta-chip">{tag}</span>)}
-      </div>
+      <header class="article-header">
+        <div class="page-meta" aria-label="节点信息">
+          <span class="meta-category category-chip" style={"--category-color:" + categoryColor(node.category)}>{categoryLabel(node.category)}</span>
+          <span class="meta-separator" aria-hidden="true">·</span>
+          <span class="meta-status">{statusLabel(node.status)}</span>
+        </div>
 
-      <a class="reading-jump" href="#node-relations">查看分支与来源 <span aria-hidden="true">↓</span></a>
+        <h1 class="page-title">{node.title}</h1>
+        <p class="page-summary">{node.summary}</p>
+
+        {
+          node.tags.length > 0 && (
+            <div class="page-tags" aria-label="标签">
+              {node.tags.map((tag) => <span>{tag}</span>)}
+            </div>
+          )
+        }
+
+        <a class="reading-jump" href="#node-relations">
+          <span>关系与来源</span>
+          <span class="reading-jump-meta">
+            {relationCount} 个关系{sourceCount > 0 ? " · " + sourceCount + " 个来源" : ""} <span aria-hidden="true">↓</span>
+          </span>
+        </a>
+      </header>
 
       <div class="markdown" set:html={node.html}></div>
     </article>
 
     <aside class="panel side-card" id="node-relations" aria-label="图谱关系" tabindex="-1">
+      <header class="side-card-header">
+        <span class="eyebrow">节点上下文</span>
+        <h2>关系与来源</h2>
+        <p>{relationCount} 个关系{sourceCount > 0 ? " · " + sourceCount + " 个来源" : ""}</p>
+      </header>
       {
         parent && (
           <section class="side-section">
