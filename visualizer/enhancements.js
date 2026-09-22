@@ -3,6 +3,8 @@ const detail = document.querySelector("#detail");
 if (detail) {
   const rootBase = new URL("../", window.location.href);
   let contentIndex = new Map();
+  let contentIndexReady = false;
+  let hasUserInteracted = false;
   let markdownToolsPromise = null;
   let readerLastFocus = null;
   let enhanceScheduled = false;
@@ -151,6 +153,8 @@ if (detail) {
       }));
     } catch {
       contentIndex = new Map();
+    } finally {
+      contentIndexReady = true;
     }
   }
 
@@ -188,6 +192,7 @@ if (detail) {
   }
 
   function enhanceConversationSection() {
+    if (!contentIndexReady) return;
     const sections = [...detail.querySelectorAll(".section")];
     const section = sections.find(function(item) {
       const heading = item.querySelector("h3");
@@ -248,7 +253,7 @@ if (detail) {
       detail.prepend(close);
     }
 
-    if (isMobile() && detail.querySelector("h2")) {
+    if (isMobile() && hasUserInteracted && detail.querySelector("h2")) {
       detail.classList.add("tg-mobile-open");
     }
   }
@@ -272,10 +277,14 @@ if (detail) {
   observer.observe(detail, { childList: true, subtree: true });
 
   document.querySelector("#graph")?.addEventListener("click", function(event) {
-    if (isMobile() && !event.target.closest?.(".node")) {
+    if (event.target.closest?.(".node")) {
+      hasUserInteracted = true;
+      return;
+    }
+    if (isMobile()) {
       detail.classList.remove("tg-mobile-open");
     }
-  });
+  }, true);
 
   window.addEventListener("resize", function() {
     if (!isMobile()) detail.classList.remove("tg-mobile-open");
