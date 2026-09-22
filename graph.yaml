@@ -1,0 +1,275 @@
+version: 1
+updated_at: 2026-09-22
+relation_types:
+  - forked_from
+  - related_to
+  - supports
+  - contradicts
+  - refines
+  - leads_to
+  - depends_on
+
+nodes:
+  - id: ai-future
+    title: AI 未来
+    kind: topic
+    category: ai-future
+    status: active
+    primary_parent: null
+    file: nodes/ai-future.md
+    source_conversations:
+      - conv-20260922-001
+    summary: AI 能力快速增长后，人类工作、知识生产、验证方式与组织结构会如何变化。
+    continue:
+      - AI 的能力增长最终会被什么约束？
+      - AI 与现实世界之间的接口会变成什么产业？
+
+  - id: future-talent
+    title: 未来稀缺人才
+    kind: concept
+    category: talent
+    status: active
+    primary_parent: ai-future
+    file: nodes/future-talent.md
+    source_conversations:
+      - conv-20260922-001
+    summary: 当生成和执行越来越便宜，定义问题、评价结果、设计约束和承担责任的人更稀缺。
+    continue:
+      - 哪些能力能系统训练？
+      - 企业岗位会如何围绕这些能力重组？
+
+  - id: verification-architecture
+    title: 验证架构
+    kind: concept
+    category: talent
+    status: active
+    primary_parent: future-talent
+    file: nodes/verification-architecture.md
+    source_conversations:
+      - conv-20260922-001
+    summary: 从逐项人工审计 AI 产出，转向设计自动暴露错误的评价、测试、约束和反馈系统。
+    continue:
+      - 不同领域的 verifier 应如何设计？
+      - 无法形式验证的现实问题怎么办？
+
+  - id: ai-system-governor
+    title: AI System Governor
+    kind: concept
+    category: talent
+    status: active
+    primary_parent: future-talent
+    file: nodes/ai-system-governor.md
+    source_conversations:
+      - conv-20260922-001
+    summary: 能定义、拆解、委派、评价并最终决策复杂 AI 系统的人。
+    continue:
+      - 这个角色与产品经理、架构师、管理者有什么边界？
+      - 哪些责任不能委派给 AI？
+
+  - id: employment-structure
+    title: AI 对就业结构的重排
+    kind: topic
+    category: employment
+    status: active
+    primary_parent: ai-future
+    file: nodes/employment-structure.md
+    source_conversations:
+      - conv-20260922-002
+    summary: AI 对劳动力市场的影响不只体现为岗位消失，也体现为职业迁移和议价能力重新分配。
+    continue:
+      - 中等技能白领会如何迁移？
+      - 教育和职业培训体系会如何调整？
+
+  - id: white-collar-displacement
+    title: 白领岗位压缩
+    kind: concept
+    category: employment
+    status: active
+    primary_parent: employment-structure
+    file: nodes/white-collar-displacement.md
+    source_conversations:
+      - conv-20260922-002
+    summary: 普通知识工作的供给能力被 AI 放大后，初级和标准化办公室岗位可能先出现内部竞争与工资压力。
+    continue:
+      - 哪些白领任务最先被压缩？
+      - 白领内部竞争会如何传导到其他行业？
+
+  - id: blue-collar-pressure
+    title: 对蓝领与低门槛服务业的挤压
+    kind: concept
+    category: employment
+    status: active
+    primary_parent: white-collar-displacement
+    file: nodes/blue-collar-pressure.md
+    source_conversations:
+      - conv-20260922-002
+    summary: 白领转岗更可能先涌入进入门槛低的服务业，而不是直接取代高技能技术蓝领。
+    continue:
+      - 哪些现实世界岗位具备更高职业护城河？
+      - 机器人普及后这个窗口期会持续多久？
+
+  - id: creator-economy-influx
+    title: 大量劳动力涌入自媒体
+    kind: concept
+    category: creator-economy
+    status: active
+    primary_parent: white-collar-displacement
+    file: nodes/creator-economy-influx.md
+    source_conversations:
+      - conv-20260922-003
+    summary: 就业压力、低进入门槛和幸存者偏差可能推动更多人尝试自媒体，而 AI 进一步压低内容生产成本。
+    continue:
+      - 自媒体收入会不会进一步两极化？
+      - 平台会如何改变分发和认证机制？
+
+  - id: ai-content-inflation
+    title: AI 内容泛滥与信息通胀
+    kind: concept
+    category: data
+    status: active
+    primary_parent: creator-economy-influx
+    file: nodes/ai-content-inflation.md
+    source_conversations:
+      - conv-20260922-003
+    summary: 内容总量可以高速增长，但新增事实和新知识未必同步增长，导致信噪比下降。
+    continue:
+      - 搜索和推荐系统如何识别原创信息增量？
+      - 真人认证内容会不会成为新层级？
+
+  - id: training-data-pollution
+    title: AI 训练数据污染
+    kind: concept
+    category: data
+    status: active
+    primary_parent: ai-content-inflation
+    file: nodes/training-data-pollution.md
+    source_conversations:
+      - conv-20260922-003
+    summary: 如果模型无区分地递归吸收低质量模型产出，公开互联网作为高质量训练源的价值可能下降。
+    continue:
+      - 如何区分高质量合成数据与不可验证生成内容？
+      - AI 训练会从互联网预训练迁移到哪些新范式？
+
+  - id: real-world-data-value
+    title: 真实世界数据价值上升
+    kind: concept
+    category: data
+    status: active
+    primary_parent: training-data-pollution
+    file: nodes/real-world-data-value.md
+    source_conversations:
+      - conv-20260922-003
+    summary: 当网络内容被生成式内容稀释，真实交易、实验、访谈、设备和行为数据的现实锚定价值上升。
+    continue:
+      - 是否会出现专门采集真实数据的新产业？
+      - 数据真实性如何证明和定价？
+
+  - id: real-world-connector
+    title: 连接 AI 与真实世界的人
+    kind: concept
+    category: talent
+    status: active
+    primary_parent: future-talent
+    file: nodes/real-world-connector.md
+    source_conversations:
+      - conv-20260922-003
+    summary: 能持续产生、采集、验证 AI 无法凭空获得的新事实，并利用 AI 放大其价值的人可能更稀缺。
+    continue:
+      - 普通人如何建立自己的第一手数据生产能力？
+      - 这类能力能否形成个人商业模式？
+
+  - id: thinking-graph-system
+    title: Thinking Graph 持久化系统
+    kind: meta
+    category: meta
+    status: active
+    primary_parent: ai-future
+    file: nodes/thinking-graph-system.md
+    source_conversations:
+      - conv-20260922-004
+    summary: 用 GitHub 持久化完整聊天、主分叉、跨话题关系与认知演化，并允许不同 AI 从任意节点接续。
+    continue:
+      - 如何自动识别分叉并提交？
+      - 如何让不同 AI 共享统一的读写协议？
+      - 是否需要图数据库或只用 Git/YAML 即可？
+
+edges:
+  - source: future-talent
+    target: ai-future
+    type: forked_from
+    reason: 对 AI 未来的第一条核心追问是人类在 AI 产出速度超过审计能力后什么人才更稀缺。
+
+  - source: verification-architecture
+    target: future-talent
+    type: forked_from
+    reason: 稀缺人才讨论进一步聚焦到如何验证 AI 大规模产出。
+
+  - source: ai-system-governor
+    target: future-talent
+    type: forked_from
+    reason: 从定义、委派、评价和最终责任中抽象出的复合角色。
+
+  - source: employment-structure
+    target: ai-future
+    type: forked_from
+    reason: 从未来人才自然转向大量现有白领被替代或压缩后的劳动力市场问题。
+
+  - source: white-collar-displacement
+    target: employment-structure
+    type: forked_from
+    reason: 就业结构讨论首先聚焦普通知识工作内部挤压。
+
+  - source: blue-collar-pressure
+    target: white-collar-displacement
+    type: forked_from
+    reason: 追问白领转岗是否会进一步挤压蓝领与服务业。
+
+  - source: creator-economy-influx
+    target: white-collar-displacement
+    type: forked_from
+    reason: 白领转岗的一个潜在出口是低门槛且被幸存者偏差放大的自媒体赛道。
+
+  - source: ai-content-inflation
+    target: creator-economy-influx
+    type: forked_from
+    reason: 大量创作者叠加 AI 低成本生产可能造成内容供给爆炸。
+
+  - source: training-data-pollution
+    target: ai-content-inflation
+    type: forked_from
+    reason: 内容生态变化进一步引出 AI 是否会吃到大量 AI 生成内容的问题。
+
+  - source: real-world-data-value
+    target: training-data-pollution
+    type: forked_from
+    reason: 公开网络数据被污染后，现实世界可验证数据的相对价值上升。
+
+  - source: real-world-connector
+    target: future-talent
+    type: forked_from
+    reason: 真实数据升值反过来补充了未来稀缺人才的定义。
+
+  - source: real-world-data-value
+    target: real-world-connector
+    type: supports
+    reason: 真实数据越稀缺，能稳定获取并验证真实数据的人越有价值。
+
+  - source: verification-architecture
+    target: training-data-pollution
+    type: related_to
+    reason: 两个分支都把可靠验证视为生成规模化后的核心瓶颈。
+
+  - source: blue-collar-pressure
+    target: real-world-connector
+    type: related_to
+    reason: 两者都指向现实世界复杂度、现场判断和难标准化经验的价值。
+
+  - source: ai-content-inflation
+    target: real-world-data-value
+    type: leads_to
+    reason: 信息通胀直接提高了可证明来自现实的新信息的相对价值。
+
+  - source: thinking-graph-system
+    target: ai-future
+    type: related_to
+    reason: Thinking Graph 是为了长期保存并继续这组关于 AI 未来的分叉讨论。
