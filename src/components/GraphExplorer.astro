@@ -51,7 +51,7 @@ const incomingLabels = {
   refines: "被修正", leads_to: "由此引出", depends_on: "被依赖"
 };
 const clientNodes = nodes.map((node) => ({
-  id: node.id, title: node.title, summary: node.summary, category: node.category,
+  id: node.id, title: node.title, summary: node.summary, html: node.html, category: node.category,
   categoryLabel: categoryLabel(node.category), color: categoryColor(node.category),
   url: thoughtPath(node.id), ...positions.get(node.id),
   parent: node.primary_parent ? {
@@ -125,7 +125,7 @@ const payload = JSON.stringify(clientNodes).replace(/</g, "\\u003c");
             <g>{nodes.map((node) => {
               const pos = positions.get(node.id);
               const lines = titleLines(node.title);
-              return <a href={thoughtPath(node.id)} class="graph-node" data-graph-node data-id={node.id} aria-label={"预览：" + node.title} transform={`translate(${pos.x},${pos.y})`} style={"--category-color:" + categoryColor(node.category)}>
+              return <a href={thoughtPath(node.id)} class="graph-node" data-graph-node data-id={node.id} aria-label={"查看：" + node.title} transform={`translate(${pos.x},${pos.y})`} style={"--category-color:" + categoryColor(node.category)}>
                 <title>{node.title}</title>
                 <rect x="-96" y="-34" width="192" height="68" rx="10" />
                 <circle cx="-81" cy="-19" r="3.5" />
@@ -142,16 +142,16 @@ const payload = JSON.stringify(clientNodes).replace(/</g, "\\u003c");
           <button type="button" data-graph-fit>适应画布</button>
         </div>
       </div>
-      <div class="graph-legend"><span><i class="line-sample" aria-hidden="true"></i>主分支</span><span><i class="line-sample cross" aria-hidden="true"></i>跨话题</span><span class="legend-hint">选择节点，查看来路与分支</span></div>
-      <p class="sr-only" id="graph-instructions">Tab 切换节点，Enter 预览。方向键移动画布，加减键缩放，0 恢复全貌。手机上可启用移动画布，再拖动或双指缩放；再次关闭即可滚动页面。</p>
+      <div class="graph-legend"><span><i class="line-sample" aria-hidden="true"></i>主分支</span><span><i class="line-sample cross" aria-hidden="true"></i>跨话题</span><span class="legend-hint">选择节点，当前页阅读内容与关系</span></div>
+      <p class="sr-only" id="graph-instructions">Tab 切换节点，Enter 查看。方向键移动画布，加减键缩放，0 恢复全貌。手机上可启用移动画布，再拖动或双指缩放；再次关闭即可滚动页面。</p>
     </div>
-    <aside class="graph-detail" aria-label="节点预览" data-graph-detail>
+    <aside class="graph-detail" aria-label="节点内容" data-graph-detail>
       <div class="detail-placeholder"><span class="eyebrow">从这里开始</span><h3>选择一个思想节点</h3><p>查看当前理解、思考来路和可以继续探索的分支。</p><a href="/thoughts/">浏览全部节点 <span aria-hidden="true">↗</span></a></div>
     </aside>
   </div>}
 
   {!listOnly && <dialog class="node-dialog" aria-labelledby="dialog-node-title" data-node-dialog>
-    <div class="dialog-header"><span>节点预览</span><button class="button" type="button" data-close-dialog autofocus>关闭</button></div>
+    <div class="dialog-header"><span>节点内容</span><button class="button" type="button" data-close-dialog autofocus>关闭</button></div>
     <div data-dialog-content></div>
   </dialog>}
   <p class="sr-only" data-selection-status role="status"></p>

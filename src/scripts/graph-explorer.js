@@ -141,7 +141,10 @@ export function initExplorer(root) {
         `<a href="${escape(item.url)}">${item.label ? `<span class="relation-label">${escape(item.label)}</span>` : ""}${escape(item.title)}${item.reason ? `<small>${escape(item.reason)}</small>` : ""}<span class="link-arrow" aria-hidden="true">↗</span></a>`
       ).join("")}</div></section>`;
     }
-    return `<div class="detail-intro"><span class="category-label" style="--category-color:${escape(node.color)}">${escape(node.categoryLabel)}</span><h3${mobileView ? ' id="dialog-node-title"' : ""}>${escape(node.title)}</h3><p>${escape(node.summary)}</p><a class="button primary-button" href="${escape(node.url)}">阅读完整节点 <span aria-hidden="true">↗</span></a></div>`
+    // node.html is rendered and sanitized at build time in lib/thinking-graph.mjs.
+    return `<div class="detail-intro"><span class="category-label" style="--category-color:${escape(node.color)}">${escape(node.categoryLabel)}</span><h3${mobileView ? ' id="dialog-node-title"' : ""}>${escape(node.title)}</h3><p>${escape(node.summary)}</p></div>`
+      + `<div class="markdown detail-reading">${node.html || ""}</div>`
+      + `<div class="detail-actions"><a class="button" href="${escape(node.url)}">在独立页面打开 <span aria-hidden="true">↗</span></a></div>`
       + section("思考起点", node.parent ? [node.parent] : [])
       + section("继续探索", node.children)
       + section("跨话题关系", node.relations)
@@ -156,7 +159,7 @@ export function initExplorer(root) {
     graphNodes.forEach((element) => element.classList.toggle("selected", element.dataset.id === id));
     detail.innerHTML = detailMarkup(node);
     detail.scrollTop = 0;
-    find("[data-selection-status]").textContent = "已选择：" + node.title;
+    find("[data-selection-status]").textContent = "正在查看：" + node.title;
     if (mobile.matches && openPreview) {
       find("[data-dialog-content]").innerHTML = detailMarkup(node, true);
       if (!dialog.open) dialog.showModal();
