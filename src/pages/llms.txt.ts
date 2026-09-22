@@ -29,7 +29,9 @@ export async function GET() {
     );
   }
 
-  return new Response(lines.join("\n") + "\n", {
+  // The prerendered .txt is later served as a static asset, so add a UTF-8 BOM
+  // instead of relying only on build-time Response headers for charset detection.
+  return new Response("\uFEFF" + lines.join("\n") + "\n", {
     headers: {
       "Content-Type": "text/plain; charset=utf-8"
     }

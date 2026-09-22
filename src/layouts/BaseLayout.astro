@@ -63,7 +63,10 @@ const isThought = Astro.url.pathname.startsWith("/thoughts/");
 
     <footer class="site-footer">
       <span>Thinking Graph <span class="footer-divider">/</span> 思考持续生长</span>
-      <a href="/llms.txt">AI 索引 <span aria-hidden="true">↗</span></a>
+      <nav class="footer-links" aria-label="辅助导航">
+        <a href="/llms.txt">AI 索引 <span aria-hidden="true">↗</span></a>
+        {Astro.site && <a href="/sitemap-index.xml">Sitemap <span aria-hidden="true">↗</span></a>}
+      </nav>
     </footer>
     <script>
       const toggle = document.querySelector<HTMLButtonElement>("[data-theme-toggle]");
