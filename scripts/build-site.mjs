@@ -11,6 +11,8 @@ const checkOnly = process.argv.includes("--check");
 const requiredPaths = [
   "graph.yaml",
   "visualizer/index.html",
+  "visualizer/enhancements.css",
+  "visualizer/enhancements.js",
   "nodes",
   "conversations"
 ];
