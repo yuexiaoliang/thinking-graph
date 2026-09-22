@@ -32,11 +32,16 @@ async function readText(relativePath) {
   return readFile(path.join(root, relativePath), "utf8");
 }
 
-function frontMatterId(markdown) {
+function parseFrontMatter(markdown) {
   const match = markdown.match(/^---\s*[\r\n]+([\s\S]*?)[\r\n]+---/);
-  if (!match) return null;
-  const id = match[1].match(/^id:\s*([^\s#]+)\s*$/m);
-  return id ? id[1].trim() : null;
+  if (!match) return { data: {}, body: markdown };
+  const data = loadYaml(match[1]) || {};
+  const body = markdown.slice(match[0].length).replace(/^\s+/, "");
+  return { data, body };
+}
+
+function frontMatterId(markdown) {
+  return parseFrontMatter(markdown).data?.id || null;
 }
 
 async function collectMarkdownFiles(relativeDir) {
@@ -80,13 +85,25 @@ async function validateGraph() {
 
   const conversationFiles = await collectMarkdownFiles("conversations");
   const conversationIds = new Map();
+  const conversationIndex = [];
   for (const file of conversationFiles) {
-    const id = frontMatterId(await readText(file));
+    const markdown = await readText(file);
+    const frontMatter = parseFrontMatter(markdown).data || {};
+    const id = frontMatter.id;
     if (!id) fail(`Conversation file is missing front-matter id: ${file}`);
     if (conversationIds.has(id)) {
       fail(`Duplicate conversation id ${id}: ${conversationIds.get(id)} and ${file}`);
     }
     conversationIds.set(id, file);
+    conversationIndex.push({
+      id,
+      title: frontMatter.title || id,
+      date: frontMatter.date || null,
+      status: frontMatter.status || null,
+      path: file,
+      forked_from_node: frontMatter.forked_from_node || null,
+      primary_parent_conversation: frontMatter.primary_parent_conversation || null
+    });
   }
 
   for (const node of graph.nodes) {
@@ -120,6 +137,7 @@ async function validateGraph() {
 
   return {
     graph,
+    conversationIndex,
     nodeCount: graph.nodes.length,
     edgeCount: graph.edges.length,
     conversationCount: conversationIds.size
@@ -143,6 +161,19 @@ async function build() {
   await cp(path.join(root, "graph.yaml"), path.join(dist, "graph.yaml"));
   await cp(path.join(root, "nodes"), path.join(dist, "nodes"), { recursive: true });
   await cp(path.join(root, "conversations"), path.join(dist, "conversations"), { recursive: true });
+
+  const contentIndex = {
+    version: 1,
+    generated_at: new Date().toISOString(),
+    conversations: stats.conversationIndex
+      .slice()
+      .sort((a, b) => String(a.date || "").localeCompare(String(b.date || "")) || a.id.localeCompare(b.id))
+  };
+  await writeFile(
+    path.join(dist, "content-index.json"),
+    JSON.stringify(contentIndex, null, 2) + "\n",
+    "utf8"
+  );
 
   const notFound = `<!doctype html>
 <html lang="zh-CN">
@@ -168,7 +199,7 @@ async function build() {
   await writeFile(path.join(dist, "404.html"), notFound, "utf8");
 
   console.log(
-    `Built dist/: ${stats.nodeCount} nodes, ${stats.edgeCount} edges, ${stats.conversationCount} conversations.`
+    `Built dist/: ${stats.nodeCount} nodes, ${stats.edgeCount} edges, ${stats.conversationCount} conversations + content-index.json.`
   );
 }
 
