@@ -8,19 +8,19 @@ import {
   thoughtPath
 } from "../../../lib/thinking-graph.mjs";
 
-function pickNode(node) {
-  if (!node) return null;
-  return {
-    id: node.id,
-    title: node.title,
-    summary: node.summary,
-    category: node.category,
-    status: node.status
-  };
-}
-
 export async function getStaticPaths() {
   const model = await loadThinkingGraph();
+
+  const pickNode = (node) => {
+    if (!node) return null;
+    return {
+      id: node.id,
+      title: node.title,
+      summary: node.summary,
+      category: node.category,
+      status: node.status
+    };
+  };
 
   return model.nodes.map((node) => {
     const relations = getNodeRelations(model, node.id);

@@ -47,13 +47,15 @@ If the user names a node, start there. Do not scan the whole repository first.
 
 Unless the user explicitly asks about the website, build, deployment, schema, or implementation, do not load:
 
-- `visualizer/`
+- `src/`
+- `lib/`
 - `scripts/`
+- `astro.config.mjs`
 - `package.json`
 - `wrangler.jsonc`
 - `CLOUDFLARE.md`
 - `schema/`
-- generated `dist/`
+- generated `dist/` and `.astro/`
 - unrelated source files
 
 Code is not brainstorming context.
@@ -90,7 +92,7 @@ Modify `BRAINSTORM.md` or `AGENTS.md` only when the operating rules themselves c
 
 ## Engineering boundary
 
-Routine work on Cloudflare, CSS, JavaScript, build scripts, deployment, or UI belongs in Git history and engineering documentation, **not** in the thought graph.
+Routine work on Astro, Cloudflare, CSS, JavaScript, build scripts, deployment, or UI belongs in Git history and engineering documentation, **not** in the thought graph.
 
 Only promote engineering discussion into the thought graph when it creates a durable idea or rule needed by future brainstorming agents.
 
