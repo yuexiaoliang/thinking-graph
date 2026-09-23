@@ -14,7 +14,7 @@ function place(id, depth) {
   const kids = children.get(id) || [];
   const xs = kids.map((child) => place(child, depth + 1));
   const x = xs.length ? (xs[0] + xs.at(-1)) / 2 : 116 + leafCursor++ * 216;
-  positions.set(id, { x, y: 64 + depth * 94 });
+  positions.set(id, { x, y: 64 + depth * 82 });
   return x;
 }
 roots.forEach((root) => place(root.id, 0));
@@ -73,20 +73,16 @@ const payload = JSON.stringify(clientNodes).replace(/</g, "\\u003c");
 ---
 
 <section class:list={["explorer", { "catalog-only": listOnly }]} data-thinking-graph data-list-only={String(listOnly)} aria-label={listOnly ? "浏览思想节点" : "探索思想图谱"}>
-  <div class="explorer-heading">
-    <div class="explorer-title"><h2>{listOnly ? "全部节点" : "思想图谱"}</h2><span class="result-count" data-result-count aria-live="polite" aria-atomic="true">{nodes.length} 个节点</span></div>
-    {!listOnly && <div class="view-switch" role="group" aria-label="浏览方式" data-enhanced hidden>
-      <button type="button" data-view="graph" aria-pressed="false" aria-controls="graph-view">图谱</button>
-      <button type="button" data-view="list" aria-pressed="true" aria-controls="list-view">列表</button>
-    </div>}
-  </div>
+  {listOnly ? <div class="explorer-heading">
+    <div class="explorer-title"><h2>全部节点</h2><span class="result-count" data-result-count aria-live="polite" aria-atomic="true">{nodes.length} 个节点</span></div>
+  </div> : <span class="sr-only" data-result-count aria-live="polite" aria-atomic="true">{nodes.length} 个节点</span>}
 
   {roots.length > 0 && <nav class="topic-entrypoints" aria-label="顶层话题总览">
     <span>顶层话题</span>
     {roots.map((root) => <a href={thoughtPath(root.id)}>{root.title}</a>)}
   </nav>}
 
-  <div class="explorer-toolbar" data-enhanced hidden>
+  {listOnly && <div class="explorer-toolbar" data-enhanced hidden>
     <div class="search-field">
       <label class="sr-only" for="node-search">搜索思想节点</label>
       <input id="node-search" type="search" placeholder="搜索标题、摘要或标签…" autocomplete="off" data-graph-search />
@@ -97,7 +93,7 @@ const payload = JSON.stringify(clientNodes).replace(/</g, "\\u003c");
       {categories.map((category) => <option value={category}>{categoryLabel(category)}</option>)}
     </select></label>
     <button class="text-button filter-reset" type="button" data-clear-filters hidden>清除筛选</button>
-  </div>
+  </div>}
 
   <div class="empty-state panel" data-empty-state hidden>
     <h3>没有找到匹配的节点</h3>
@@ -114,13 +110,8 @@ const payload = JSON.stringify(clientNodes).replace(/</g, "\\u003c");
     </a>)}
   </div>
 
-  {!listOnly && <div class="graph-workspace panel" id="graph-view" data-graph-view hidden>
+  {!listOnly && <div class="graph-workspace" id="graph-view" data-graph-view hidden>
     <div class="graph-canvas">
-      <div class="canvas-toolbar">
-        <label class="graph-toggle"><input type="checkbox" checked data-graph-cross-toggle />跨话题关系</label>
-        <button class="text-button touch-pan-toggle" type="button" aria-pressed="false" data-touch-pan>移动画布</button>
-        <span class="canvas-tip">拖动平移 · Ctrl / ⌘ + 滚轮缩放</span>
-      </div>
       <div class="graph-stage" data-graph-stage>
         <svg viewBox={`0 0 ${graphWidth} ${graphHeight}`} role="group" aria-label="交互思想图谱" aria-describedby="graph-instructions" tabindex="0" data-graph-svg>
           <g data-graph-viewport>
@@ -139,18 +130,17 @@ const payload = JSON.stringify(clientNodes).replace(/</g, "\\u003c");
             })}</g>
           </g>
         </svg>
-        <div class="zoom-controls" role="group" aria-label="画布缩放">
-          <button type="button" aria-label="缩小图谱" data-graph-zoom-out>−</button>
-          <output data-zoom-level aria-label="缩放比例">100%</output>
-          <button type="button" aria-label="放大图谱" data-graph-zoom-in>+</button>
-          <button type="button" data-graph-fit>适应画布</button>
+        <div class="graph-legend">
+          <span><i class="line-sample" aria-hidden="true"></i>主分支</span>
+          <label class="graph-toggle"><input type="checkbox" checked data-graph-cross-toggle /><i class="line-sample cross" aria-hidden="true"></i>跨话题</label>
+          <span class="canvas-tip">拖动移动 · 滚轮缩放</span>
         </div>
       </div>
-      <div class="graph-legend"><span><i class="line-sample" aria-hidden="true"></i>主分支</span><span><i class="line-sample cross" aria-hidden="true"></i>跨话题</span><span class="legend-hint">选择节点，当前页阅读内容与关系</span></div>
-      <p class="sr-only" id="graph-instructions">Tab 切换节点，Enter 查看。方向键移动画布，加减键缩放，0 恢复全貌。手机上可启用移动画布，再拖动或双指缩放；再次关闭即可滚动页面。</p>
+      <p class="sr-only" id="graph-instructions">Tab 切换节点，Enter 查看。拖动或触屏平移，滚轮或双指缩放。方向键移动画布，加减键缩放，0 恢复全貌。完整节点列表在主导航的节点页面。</p>
     </div>
-    <aside class="graph-detail" aria-label="节点内容" data-graph-detail>
-      <div class="detail-placeholder"><span class="eyebrow">从这里开始</span><h3>选择一个思想节点</h3><p>查看当前理解、思考来路和可以继续探索的分支。</p><a href="/thoughts/">浏览全部节点 <span aria-hidden="true">↗</span></a></div>
+    <aside class="graph-detail" aria-label="节点内容" data-graph-detail hidden>
+      <div class="graph-detail-bar"><span>节点内容</span><button class="button" type="button" data-close-detail>关闭</button></div>
+      <div data-detail-content></div>
     </aside>
   </div>}
 

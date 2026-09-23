@@ -4,8 +4,11 @@ export function initExplorer(root) {
   const find = (selector) => root.querySelector(selector);
   const listOnly = root.dataset.listOnly === "true";
   const mobile = window.matchMedia("(max-width: 760px)");
-  const search = find("[data-graph-search]");
-  const category = find("[data-graph-category]");
+  const headerSearch = document.querySelector("[data-header-search]");
+  const search = find("[data-graph-search]") || headerSearch?.querySelector("[data-graph-search]");
+  const category = find("[data-graph-category]") || headerSearch?.querySelector("[data-graph-category]");
+  const filterReset = find(".filter-reset") || headerSearch?.querySelector("[data-filter-reset]");
+  const searchTrigger = headerSearch?.querySelector("[data-search-trigger]");
   const cards = [...root.querySelectorAll("[data-node-card]")];
   const graphNodes = [...root.querySelectorAll("[data-graph-node]")];
   const list = find("[data-list-view]");
@@ -14,8 +17,8 @@ export function initExplorer(root) {
   const viewport = find("[data-graph-viewport]");
   const stage = find("[data-graph-stage]");
   const detail = find("[data-graph-detail]");
+  const detailContent = find("[data-detail-content]");
   const dialog = find("[data-node-dialog]");
-  const placeholder = detail?.innerHTML;
   const pointers = new Map();
   let visible = new Set(nodes.map((node) => node.id));
   let view = "list";
@@ -27,7 +30,7 @@ export function initExplorer(root) {
   let ty = 0;
   let width = 1;
   let height = 1;
-  let touchPan = false;
+  let cameraMode = mobile.matches ? "root" : "overview";
   let suppressClickUntil = 0;
   const minScale = 0.12;
   const maxScale = 2.5;
@@ -35,6 +38,13 @@ export function initExplorer(root) {
   const escape = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
   })[char]);
+
+  function setSearchOpen(open, focus = false) {
+    if (!headerSearch) return;
+    headerSearch.dataset.open = String(open);
+    searchTrigger.setAttribute("aria-expanded", String(open));
+    if (focus) (open ? search : searchTrigger).focus();
+  }
 
   function saveState() {
     const url = new URL(window.location.href);
@@ -50,27 +60,47 @@ export function initExplorer(root) {
 
   function transform() {
     viewport?.setAttribute("transform", `translate(${tx} ${ty}) scale(${scale})`);
-    if (!svg) return;
-    find("[data-zoom-level]").textContent = Math.round(scale * 100) + "%";
-    find("[data-graph-zoom-in]").disabled = scale >= maxScale;
-    find("[data-graph-zoom-out]").disabled = scale <= minScale;
   }
 
-  function fit() {
+  function frame() {
     if (!svg || view !== "graph" || !visible.size) return;
     const rect = stage.getBoundingClientRect();
     if (!rect.width || !rect.height) return;
+    const oldWidth = width;
+    const oldHeight = height;
     width = rect.width; height = rect.height;
     svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+    if (cameraMode === "manual") {
+      tx += (width - oldWidth) / 2;
+      ty += (height - oldHeight) / 2;
+      transform();
+      return;
+    }
     const points = nodes.filter((node) => visible.has(node.id));
     const left = Math.min(...points.map((node) => node.x)) - 110;
     const right = Math.max(...points.map((node) => node.x)) + 110;
     const top = Math.min(...points.map((node) => node.y)) - 48;
     const bottom = Math.max(...points.map((node) => node.y)) + 48;
-    scale = Math.max(minScale, Math.min(1, (width - 36) / (right - left), (height - 88) / (bottom - top)));
+    const topInset = 104;
+    const bottomInset = 64;
+    const overviewScale = Math.max(minScale, Math.min(1, (width - 36) / (right - left), (height - topInset - bottomInset) / (bottom - top)));
+    if (cameraMode === "root" && mobile.matches) {
+      const rootNode = points.find((node) => !node.parent) || points[0];
+      scale = Math.max(0.85, overviewScale);
+      tx = width / 2 - rootNode.x * scale;
+      ty = height * 0.38 - rootNode.y * scale;
+      transform();
+      return;
+    }
+    scale = overviewScale;
     tx = (width - (right - left) * scale) / 2 - left * scale;
-    ty = (height - 44 - (bottom - top) * scale) / 2 - top * scale;
+    ty = topInset + (height - topInset - bottomInset - (bottom - top) * scale) / 2 - top * scale;
     transform();
+  }
+
+  function fit() {
+    cameraMode = "overview";
+    frame();
   }
 
   function zoom(factor, x = width / 2, y = height / 2) {
@@ -79,31 +109,23 @@ export function initExplorer(root) {
     tx = x - (x - tx) * ratio;
     ty = y - (y - ty) * ratio;
     scale = next;
+    cameraMode = "manual";
     transform();
   }
 
   function renderVisibility() {
     list.hidden = view !== "list" || !visible.size;
-    if (graph) graph.hidden = view !== "graph" || !visible.size;
+    if (graph) graph.hidden = view !== "graph";
     find("[data-empty-state]").hidden = visible.size > 0;
-    root.querySelectorAll("[data-view]").forEach((button) => {
-      button.setAttribute("aria-pressed", String(button.dataset.view === view));
-    });
     root.dataset.view = view;
-  }
-
-  function setView(next, explicit = false) {
-    view = listOnly ? "list" : next;
-    if (explicit) explicitView = true;
-    renderVisibility();
-    fit();
-    saveState();
+    document.body.classList.toggle("graph-mode", !listOnly && view === "graph");
   }
 
   function clearSelection() {
     selectedId = null;
     explicitSelection = false;
-    if (detail) detail.innerHTML = placeholder;
+    if (detail) detail.hidden = true;
+    if (detailContent) detailContent.innerHTML = "";
     graphNodes.forEach((element) => element.classList.remove("selected"));
   }
 
@@ -128,9 +150,14 @@ export function initExplorer(root) {
     if (selectedId && !visible.has(selectedId)) clearSelection();
     const active = !!query || category.value !== "all";
     find("[data-result-count]").textContent = active ? `${visible.size} / ${nodes.length} 个节点` : `${nodes.length} 个节点`;
-    find(".filter-reset").hidden = !active;
+    filterReset.hidden = !active;
+    if (searchTrigger) {
+      searchTrigger.classList.toggle("has-filter", active);
+      searchTrigger.setAttribute("aria-label", active ? "展开搜索与筛选，当前有筛选" : "展开搜索与筛选");
+    }
+    cameraMode = active ? "overview" : mobile.matches ? "root" : "overview";
     renderVisibility();
-    fit();
+    frame();
     if (persist) saveState();
   }
 
@@ -153,18 +180,32 @@ export function initExplorer(root) {
 
   function selectNode(id, openPreview = true, explicit = true) {
     const node = nodeMap.get(id);
-    if (!node || !detail) return;
+    if (!node || !detailContent) return;
     selectedId = id;
     explicitSelection = explicit;
     graphNodes.forEach((element) => element.classList.toggle("selected", element.dataset.id === id));
-    detail.innerHTML = detailMarkup(node);
+    detailContent.innerHTML = detailMarkup(node);
+    detail.hidden = false;
     detail.scrollTop = 0;
     find("[data-selection-status]").textContent = "正在查看：" + node.title;
     if (mobile.matches && openPreview) {
+      scale = Math.max(scale, 0.85);
+      tx = width / 2 - node.x * scale;
+      ty = height * 0.4 - node.y * scale;
+      cameraMode = "manual";
+      transform();
       find("[data-dialog-content]").innerHTML = detailMarkup(node, true);
       if (!dialog.open) dialog.showModal();
       dialog.scrollTop = 0;
       document.body.classList.add("dialog-open");
+    } else if (!mobile.matches && view === "graph") {
+      const availableRight = width - detail.getBoundingClientRect().width - 40;
+      const nodeX = node.x * scale + tx;
+      const nodeY = node.y * scale + ty;
+      if (nodeX > availableRight - 55 || nodeX < 55) tx += availableRight / 2 - nodeX;
+      if (nodeY < 170 || nodeY > height - 75) ty += height * 0.48 - nodeY;
+      cameraMode = "manual";
+      transform();
     }
     saveState();
   }
@@ -173,28 +214,26 @@ export function initExplorer(root) {
     const params = new URL(window.location.href).searchParams;
     search.value = params.get("q") || "";
     category.value = [...category.options].some((option) => option.value === params.get("category")) ? params.get("category") : "all";
+    setSearchOpen(!mobile.matches || !!search.value || category.value !== "all");
     const requestedView = params.get("view");
     explicitView = requestedView === "list" || requestedView === "graph";
     const nodeId = params.get("node");
-    view = listOnly ? "list" : explicitView ? requestedView : nodeMap.has(nodeId) ? "graph" : mobile.matches ? "list" : "graph";
+    view = listOnly ? "list" : explicitView ? requestedView : "graph";
     clearSelection();
     filter(false);
-    if (visible.has(nodeId) && !listOnly) selectNode(nodeId);
-    else if (!listOnly && !mobile.matches) {
-      // Offer a useful starting point, derived from the graph's provenance roots.
-      const first = nodes.find((node) => !node.parent && visible.has(node.id));
-      if (first) selectNode(first.id, false, false);
-    }
+    if (view === "graph" && visible.has(nodeId) && !listOnly) selectNode(nodeId);
   }
 
   root.querySelectorAll("[data-enhanced]").forEach((element) => { element.hidden = false; });
-  root.querySelectorAll("[data-view]").forEach((button) => {
-    button.addEventListener("click", () => setView(button.dataset.view, true));
-  });
+  headerSearch?.removeAttribute("hidden");
+  searchTrigger?.addEventListener("click", () => setSearchOpen(true, true));
+  headerSearch?.querySelector("[data-search-close]")?.addEventListener("click", () => setSearchOpen(false, true));
   search.addEventListener("input", () => filter());
   category.addEventListener("change", () => filter());
-  root.querySelectorAll("[data-clear-filters]").forEach((button) => button.addEventListener("click", () => {
-    search.value = ""; category.value = "all"; filter(); search.focus();
+  [...root.querySelectorAll("[data-clear-filters]"), ...(headerSearch?.querySelectorAll("[data-clear-filters]") || [])].forEach((button) => button.addEventListener("click", () => {
+    search.value = ""; category.value = "all"; filter();
+    if (headerSearch) setSearchOpen(true, true);
+    else search.focus();
   }));
   root.querySelectorAll("[data-graph-node]").forEach((element) => element.addEventListener("click", (event) => {
     if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
@@ -205,17 +244,20 @@ export function initExplorer(root) {
   find("[data-graph-cross-toggle]")?.addEventListener("change", (event) => {
     find("[data-graph-cross-layer]").classList.toggle("hidden", !event.target.checked);
   });
-  find("[data-graph-zoom-in]")?.addEventListener("click", () => zoom(1.25));
-  find("[data-graph-zoom-out]")?.addEventListener("click", () => zoom(0.8));
-  find("[data-graph-fit]")?.addEventListener("click", fit);
-  find("[data-touch-pan]")?.addEventListener("click", (event) => {
-    touchPan = !touchPan;
-    stage.dataset.touchPan = String(touchPan);
-    event.currentTarget.setAttribute("aria-pressed", String(touchPan));
-    event.currentTarget.textContent = touchPan ? "完成移动" : "移动画布";
+  find("[data-close-detail]")?.addEventListener("click", () => {
+    const node = graphNodes.find((element) => element.dataset.id === selectedId);
+    clearSelection();
+    saveState();
+    node?.focus();
   });
   find("[data-close-dialog]")?.addEventListener("click", () => dialog.close());
-  dialog?.addEventListener("close", () => document.body.classList.remove("dialog-open"));
+  dialog?.addEventListener("close", () => {
+    const node = graphNodes.find((element) => element.dataset.id === selectedId);
+    document.body.classList.remove("dialog-open");
+    clearSelection();
+    saveState();
+    node?.focus();
+  });
   dialog?.addEventListener("click", (event) => {
     if (event.target !== dialog) return;
     const rect = dialog.getBoundingClientRect();
@@ -223,22 +265,21 @@ export function initExplorer(root) {
   });
 
   svg?.addEventListener("wheel", (event) => {
-    if (!event.ctrlKey && !event.metaKey) return;
     event.preventDefault();
     const rect = svg.getBoundingClientRect();
-    zoom(Math.exp(-event.deltaY * 0.008), event.clientX - rect.left, event.clientY - rect.top);
+    zoom(Math.exp(-event.deltaY * (event.ctrlKey || event.metaKey ? 0.008 : 0.0015)), event.clientX - rect.left, event.clientY - rect.top);
   }, { passive: false });
   svg?.addEventListener("keydown", (event) => {
     const movement = { ArrowLeft: [40, 0], ArrowRight: [-40, 0], ArrowUp: [0, 40], ArrowDown: [0, -40] }[event.key];
     if (event.ctrlKey || event.metaKey || event.altKey) return;
-    if (movement) { event.preventDefault(); tx += movement[0]; ty += movement[1]; transform(); }
+    if (movement) { event.preventDefault(); tx += movement[0]; ty += movement[1]; cameraMode = "manual"; transform(); }
     if (["+", "=", "-", "0"].includes(event.key)) {
       event.preventDefault();
       if (event.key === "0") fit(); else zoom(event.key === "-" ? 0.8 : 1.25);
     }
   });
   svg?.addEventListener("pointerdown", (event) => {
-    if (event.button !== 0 || (event.pointerType === "touch" && !touchPan)) return;
+    if (event.button !== 0) return;
     pointers.set(event.pointerId, { x: event.clientX, y: event.clientY, startX: event.clientX, startY: event.clientY, moved: false });
   });
   svg?.addEventListener("pointermove", (event) => {
@@ -261,6 +302,7 @@ export function initExplorer(root) {
     svg.setPointerCapture(event.pointerId);
     stage.classList.add("is-dragging");
     suppressClickUntil = performance.now() + 350;
+    cameraMode = "manual";
     transform();
   });
   function release(event) {
@@ -274,16 +316,29 @@ export function initExplorer(root) {
   svg?.addEventListener("pointerleave", (event) => {
     if (!svg.hasPointerCapture(event.pointerId)) pointers.delete(event.pointerId);
   });
-  if (stage) new ResizeObserver(fit).observe(stage);
+  if (stage) new ResizeObserver(frame).observe(stage);
   mobile.addEventListener("change", () => {
     if (dialog?.open) dialog.close();
-    if (!explicitView) setView(mobile.matches ? "list" : "graph");
-    else fit();
+    setSearchOpen(!mobile.matches || !!search.value || category.value !== "all");
+    if (cameraMode !== "manual") cameraMode = mobile.matches ? "root" : "overview";
+    frame();
   });
   document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && mobile.matches && headerSearch?.dataset.open === "true" && !dialog?.open) {
+      event.preventDefault();
+      setSearchOpen(false, true);
+      return;
+    }
+    if (event.key === "Escape" && selectedId && !dialog?.open && view === "graph") {
+      const node = graphNodes.find((element) => element.dataset.id === selectedId);
+      clearSelection();
+      saveState();
+      node?.focus();
+      return;
+    }
     if (event.key !== "/" || event.ctrlKey || event.metaKey || event.altKey || dialog?.open) return;
     if (event.target.closest("input, select, textarea, [contenteditable]")) return;
-    event.preventDefault(); search.focus();
+    event.preventDefault(); setSearchOpen(true, true); search.focus();
   });
   window.addEventListener("popstate", restoreState);
   restoreState();

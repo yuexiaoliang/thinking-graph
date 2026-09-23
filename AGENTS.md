@@ -296,7 +296,7 @@ conversations/ + nodes/ + graph.yaml → Astro SSG → dist/
 
 Every node has a real `/thoughts/<id>/` static URL. Every conversation has `/conversations/<id>/`, normally `noindex,follow` so provenance does not compete with compressed nodes. The homepage keeps the interactive graph and real crawlable links. Render and sanitize Markdown at build time; public reading pages must not depend on browser-side Markdown fetching/rendering.
 
-Preserve progressive enhancement: desktop defaults to graph, mobile to readable list; static links work without JavaScript. Preserve current-page graph-node reading with optional standalone URLs, keyboard controls, modal focus handling, ordinary page scrolling, and URL-restorable browsing state. Do not regress the flat mobile reading layout.
+Preserve progressive enhancement: the homepage defaults to a viewport-filling graph on all screen sizes; `/thoughts/` is the readable list, and static homepage links work without JavaScript. Keep graph controls sparse. Preserve current-page graph-node reading with optional standalone URLs, keyboard controls, dialog focus handling on mobile, ordinary scrolling on reading/list pages, and URL-restorable browsing state. Do not regress the flat mobile reading layout.
 
 Navigation derives from actual parents, children, typed relations, incoming links, sources, and **all roots**, never a hard-coded `ai-future` assumption. Category labels are not topic-root labels. `graph.yaml` remains the sole relationship source.
 

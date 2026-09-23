@@ -2,8 +2,10 @@
 import BaseLayout from "../layouts/BaseLayout.astro";
 import GraphExplorer from "../components/GraphExplorer.astro";
 import { loadThinkingGraph } from "../../lib/thinking-graph.mjs";
+import { categoryLabel } from "../lib/presentation.js";
 
 const model = await loadThinkingGraph();
+const graphCategories = [...new Set(model.nodes.map((node) => node.category))].map((value) => ({ value, label: categoryLabel(value) }));
 const description =
   "可追溯、可分叉、可被任意 AI Agent 继续的高信噪比思想图谱。";
 
@@ -24,19 +26,8 @@ const jsonLd = Astro.site
   description={description}
   canonicalPath="/"
   jsonLd={jsonLd}
+  graphCategories={graphCategories}
 >
-  <section class="hero home-hero">
-    <div>
-      <span class="eyebrow">想法 · 连接 · 演化</span>
-      <h1>探索思想之间的联系<span class="accent-text">。</span></h1>
-      <p>从一个节点开始，追溯来路，找到下一步值得思考的问题。</p>
-    </div>
-    <div class="stats" aria-label="图谱统计">
-      <div class="stat"><strong>{model.nodes.length}</strong><span>思想节点</span></div>
-      <div class="stat"><strong>{model.graph.edges.length}</strong><span>关系连接</span></div>
-      <div class="stat"><strong>{model.conversations.length}</strong><span>来源对话</span></div>
-    </div>
-  </section>
-
+  <h1 class="sr-only">思想图谱</h1>
   <GraphExplorer model={model} />
 </BaseLayout>

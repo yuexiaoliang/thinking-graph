@@ -7,7 +7,8 @@ const {
   canonicalPath = Astro.url.pathname,
   robots = "index,follow",
   ogType = "website",
-  jsonLd = []
+  jsonLd = [],
+  graphCategories = []
 } = Astro.props;
 
 const fullTitle = title === "Thinking Graph" ? title : title + " | Thinking Graph";
@@ -44,11 +45,26 @@ const isThought = Astro.url.pathname.startsWith("/thoughts/");
       ))
     }
   </head>
-  <body>
+  <body class:list={{ "home-page": isHome }}>
     <a class="skip-link" href="#main-content">跳到主要内容</a>
     <header class="site-header">
       <nav class="site-nav" aria-label="主导航">
-        <a class="site-brand" href="/">Thinking<span>Graph</span><span class="brand-dot" aria-hidden="true">.</span></a>
+        <a class="site-brand" href="/" aria-label="Thinking Graph"><span class="brand-full">Thinking<span>Graph</span><span class="brand-dot" aria-hidden="true">.</span></span><span class="brand-short" aria-hidden="true">TG<span class="brand-dot">.</span></span></a>
+        {isHome && <div class="site-search" data-header-search data-open="false" hidden>
+          <button class="search-trigger" type="button" data-search-trigger aria-controls="home-search-fields" aria-expanded="false" aria-label="展开搜索与筛选">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.2" /><path d="m16 16 4.5 4.5" /></svg>
+          </button>
+          <div class="site-search-fields" id="home-search-fields">
+            <label class="sr-only" for="node-search">搜索思想节点</label>
+            <input id="node-search" type="search" placeholder="搜索节点…" autocomplete="off" data-graph-search />
+            <label class="category-field"><span class="sr-only">按类别筛选</span><select data-graph-category>
+              <option value="all">全部类别</option>
+              {graphCategories.map((category) => <option value={category.value}>{category.label}</option>)}
+            </select></label>
+            <button class="search-close" type="button" data-search-close aria-label="收起搜索">×</button>
+          </div>
+          <button class="search-reset" type="button" data-clear-filters data-filter-reset hidden>清除筛选</button>
+        </div>}
         <div class="site-links">
           <a href="/" aria-current={isHome ? "page" : undefined}>图谱</a>
           <a href="/thoughts/" aria-current={isThought ? "page" : undefined}>节点</a>
