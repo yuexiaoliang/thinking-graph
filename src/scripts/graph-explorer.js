@@ -189,11 +189,6 @@ export function initExplorer(root) {
     detail.scrollTop = 0;
     find("[data-selection-status]").textContent = "正在查看：" + node.title;
     if (mobile.matches && openPreview) {
-      scale = Math.max(scale, 0.85);
-      tx = width / 2 - node.x * scale;
-      ty = height * 0.4 - node.y * scale;
-      cameraMode = "manual";
-      transform();
       find("[data-dialog-content]").innerHTML = detailMarkup(node, true);
       if (!dialog.open) dialog.showModal();
       dialog.scrollTop = 0;
@@ -312,7 +307,10 @@ export function initExplorer(root) {
   }
   svg?.addEventListener("pointerup", release);
   svg?.addEventListener("pointercancel", release);
-  svg?.addEventListener("lostpointercapture", release);
+  svg?.addEventListener("lostpointercapture", (event) => {
+    // A node's implicit touch capture also bubbles here when capture moves to the SVG.
+    if (event.target === svg) release(event);
+  });
   svg?.addEventListener("pointerleave", (event) => {
     if (!svg.hasPointerCapture(event.pointerId)) pointers.delete(event.pointerId);
   });

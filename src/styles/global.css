@@ -118,7 +118,7 @@ button:disabled { opacity: .4; cursor: default; }
 .graph-primary-edge { fill: none; stroke: var(--edge); stroke-width: 1.6; }
 .graph-cross-edge { fill: none; stroke: var(--cross); stroke-width: 1.3; stroke-dasharray: 5 5; opacity: .5; }
 .graph-cross-layer.hidden { display: none; }
-.graph-node { cursor: pointer; text-decoration: none; }
+.graph-node { cursor: pointer; text-decoration: none; touch-action: none; }
 .graph-node rect { fill: var(--panel); stroke: var(--border); stroke-width: 1.5; }
 .graph-node circle { fill: var(--category-color); }
 .graph-node text { fill: var(--text); text-anchor: middle; pointer-events: none; }
