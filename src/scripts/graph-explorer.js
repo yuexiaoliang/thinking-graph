@@ -1,6 +1,6 @@
 export function initExplorer(root) {
   const nodes = JSON.parse(root.querySelector("[data-graph-data]").textContent);
-  nodes.forEach((node) => { node.landscape = { x: node.x, y: node.y }; });
+  nodes.forEach((node) => { node.vertical = { x: node.x, y: node.y }; });
   const nodeMap = new Map(nodes.map((node) => [node.id, node]));
   const find = (selector) => root.querySelector(selector);
   const listOnly = root.dataset.listOnly === "true";
@@ -64,20 +64,15 @@ export function initExplorer(root) {
     viewport?.setAttribute("transform", `translate(${tx} ${ty}) scale(${scale})`);
   }
 
-  function edgePath(source, target, primary) {
+  function edgePath(source, target) {
+    if ((layoutMode === "horizontal" && source.x !== target.x) || source.y === target.y) {
+      const direction = target.x >= source.x ? 1 : -1;
+      const mid = (source.x + target.x) / 2;
+      return `M ${source.x + direction * 96} ${source.y} C ${mid} ${source.y}, ${mid} ${target.y}, ${target.x - direction * 96} ${target.y}`;
+    }
+    const direction = target.y >= source.y ? 1 : -1;
     const mid = (source.y + target.y) / 2;
-    if (layoutMode === "compact" && source.y === target.y) {
-      const direction = Math.sign(target.x - source.x);
-      const middleX = (source.x + target.x) / 2;
-      return `M ${source.x + direction * 96} ${source.y} C ${middleX} ${source.y}, ${middleX} ${target.y}, ${target.x - direction * 96} ${target.y}`;
-    }
-    if (layoutMode === "portrait" && primary && source.x === target.x && target.y - source.y > 100) {
-      const side = source.x < 224 ? -1 : 1;
-      const gutter = source.x + side * 112;
-      const edge = source.x + side * 96;
-      return `M ${edge} ${source.y} C ${gutter} ${source.y}, ${gutter} ${source.y + 12}, ${gutter} ${source.y + 24} L ${gutter} ${target.y - 24} C ${gutter} ${target.y - 12}, ${gutter} ${target.y}, ${edge} ${target.y}`;
-    }
-    return `M ${source.x} ${source.y + 34} C ${source.x} ${mid}, ${target.x} ${mid}, ${target.x} ${target.y - 34}`;
+    return `M ${source.x} ${source.y + direction * 34} C ${source.x} ${mid}, ${target.x} ${mid}, ${target.x} ${target.y - direction * 34}`;
   }
 
   function applyLayout(nextLayout) {
@@ -96,7 +91,7 @@ export function initExplorer(root) {
     root.querySelectorAll(".graph-edge").forEach((element) => {
       const source = nodeMap.get(element.dataset.source);
       const target = nodeMap.get(element.dataset.target);
-      element.setAttribute("d", edgePath(source, target, element.classList.contains("graph-primary-edge")));
+      element.setAttribute("d", edgePath(source, target));
     });
     cameraMode = "overview";
   }
@@ -105,7 +100,7 @@ export function initExplorer(root) {
     if (!svg || view !== "graph" || !visible.size) return;
     const rect = stage.getBoundingClientRect();
     if (!rect.width || !rect.height) return;
-    applyLayout(rect.height > rect.width ? "portrait" : rect.height < 520 ? "compact" : "landscape");
+    applyLayout(rect.height > rect.width ? "vertical" : "horizontal");
     const oldWidth = width;
     const oldHeight = height;
     width = rect.width; height = rect.height;
@@ -121,8 +116,9 @@ export function initExplorer(root) {
     const right = Math.max(...points.map((node) => node.x)) + 110;
     const top = Math.min(...points.map((node) => node.y)) - 48;
     const bottom = Math.max(...points.map((node) => node.y)) + 48;
-    const topInset = layoutMode === "compact" || mobile.matches ? 80 : 104;
-    const bottomInset = layoutMode === "compact" ? 90 : mobile.matches ? 72 : 64;
+    const shortScreen = height < 520;
+    const topInset = shortScreen || mobile.matches ? 80 : 104;
+    const bottomInset = shortScreen ? 90 : mobile.matches ? 72 : 64;
     const overviewScale = Math.max(minScale, Math.min(1, (width - 36) / (right - left), (height - topInset - bottomInset) / (bottom - top)));
     scale = overviewScale;
     tx = (width - (right - left) * scale) / 2 - left * scale;
