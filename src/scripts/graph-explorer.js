@@ -1,5 +1,6 @@
 export function initExplorer(root) {
   const nodes = JSON.parse(root.querySelector("[data-graph-data]").textContent);
+  nodes.forEach((node) => { node.landscape = { x: node.x, y: node.y }; });
   const nodeMap = new Map(nodes.map((node) => [node.id, node]));
   const find = (selector) => root.querySelector(selector);
   const listOnly = root.dataset.listOnly === "true";
@@ -30,7 +31,8 @@ export function initExplorer(root) {
   let ty = 0;
   let width = 1;
   let height = 1;
-  let cameraMode = mobile.matches ? "root" : "overview";
+  let layoutMode = null;
+  let cameraMode = "overview";
   let suppressClickUntil = 0;
   const minScale = 0.12;
   const maxScale = 2.5;
@@ -62,10 +64,48 @@ export function initExplorer(root) {
     viewport?.setAttribute("transform", `translate(${tx} ${ty}) scale(${scale})`);
   }
 
+  function edgePath(source, target, primary) {
+    const mid = (source.y + target.y) / 2;
+    if (layoutMode === "compact" && source.y === target.y) {
+      const direction = Math.sign(target.x - source.x);
+      const middleX = (source.x + target.x) / 2;
+      return `M ${source.x + direction * 96} ${source.y} C ${middleX} ${source.y}, ${middleX} ${target.y}, ${target.x - direction * 96} ${target.y}`;
+    }
+    if (layoutMode === "portrait" && primary && source.x === target.x && target.y - source.y > 100) {
+      const side = source.x < 224 ? -1 : 1;
+      const gutter = source.x + side * 112;
+      const edge = source.x + side * 96;
+      return `M ${edge} ${source.y} C ${gutter} ${source.y}, ${gutter} ${source.y + 12}, ${gutter} ${source.y + 24} L ${gutter} ${target.y - 24} C ${gutter} ${target.y - 12}, ${gutter} ${target.y}, ${edge} ${target.y}`;
+    }
+    return `M ${source.x} ${source.y + 34} C ${source.x} ${mid}, ${target.x} ${mid}, ${target.x} ${target.y - 34}`;
+  }
+
+  function applyLayout(nextLayout) {
+    if (nextLayout === layoutMode) return;
+    layoutMode = nextLayout;
+    root.dataset.layout = layoutMode;
+    nodes.forEach((node) => {
+      const position = node[layoutMode];
+      node.x = position.x;
+      node.y = position.y;
+    });
+    graphNodes.forEach((element) => {
+      const node = nodeMap.get(element.dataset.id);
+      element.setAttribute("transform", `translate(${node.x},${node.y})`);
+    });
+    root.querySelectorAll(".graph-edge").forEach((element) => {
+      const source = nodeMap.get(element.dataset.source);
+      const target = nodeMap.get(element.dataset.target);
+      element.setAttribute("d", edgePath(source, target, element.classList.contains("graph-primary-edge")));
+    });
+    cameraMode = "overview";
+  }
+
   function frame() {
     if (!svg || view !== "graph" || !visible.size) return;
     const rect = stage.getBoundingClientRect();
     if (!rect.width || !rect.height) return;
+    applyLayout(rect.height > rect.width ? "portrait" : rect.height < 520 ? "compact" : "landscape");
     const oldWidth = width;
     const oldHeight = height;
     width = rect.width; height = rect.height;
@@ -81,17 +121,9 @@ export function initExplorer(root) {
     const right = Math.max(...points.map((node) => node.x)) + 110;
     const top = Math.min(...points.map((node) => node.y)) - 48;
     const bottom = Math.max(...points.map((node) => node.y)) + 48;
-    const topInset = 104;
-    const bottomInset = 64;
+    const topInset = layoutMode === "compact" || mobile.matches ? 80 : 104;
+    const bottomInset = layoutMode === "compact" ? 90 : mobile.matches ? 72 : 64;
     const overviewScale = Math.max(minScale, Math.min(1, (width - 36) / (right - left), (height - topInset - bottomInset) / (bottom - top)));
-    if (cameraMode === "root" && mobile.matches) {
-      const rootNode = points.find((node) => !node.parent) || points[0];
-      scale = Math.max(0.85, overviewScale);
-      tx = width / 2 - rootNode.x * scale;
-      ty = height * 0.38 - rootNode.y * scale;
-      transform();
-      return;
-    }
     scale = overviewScale;
     tx = (width - (right - left) * scale) / 2 - left * scale;
     ty = topInset + (height - topInset - bottomInset - (bottom - top) * scale) / 2 - top * scale;
@@ -155,7 +187,7 @@ export function initExplorer(root) {
       searchTrigger.classList.toggle("has-filter", active);
       searchTrigger.setAttribute("aria-label", active ? "展开搜索与筛选，当前有筛选" : "展开搜索与筛选");
     }
-    cameraMode = active ? "overview" : mobile.matches ? "root" : "overview";
+    cameraMode = "overview";
     renderVisibility();
     frame();
     if (persist) saveState();
@@ -318,7 +350,6 @@ export function initExplorer(root) {
   mobile.addEventListener("change", () => {
     if (dialog?.open) dialog.close();
     setSearchOpen(!mobile.matches || !!search.value || category.value !== "all");
-    if (cameraMode !== "manual") cameraMode = mobile.matches ? "root" : "overview";
     frame();
   });
   document.addEventListener("keydown", (event) => {

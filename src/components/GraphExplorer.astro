@@ -20,6 +20,39 @@ function place(id, depth) {
 roots.forEach((root) => place(root.id, 0));
 const graphWidth = Math.max(232, leafCursor * 216 + 16);
 const graphHeight = Math.max(160, ...[...positions.values()].map((p) => p.y + 64));
+
+const portraitPositions = new Map();
+const portraitRows = [0, 0];
+let portraitLanes = roots.map((root) => root.id);
+let portraitStartY = 64;
+if (roots.length === 1) {
+  portraitPositions.set(roots[0].id, { x: 224, y: 64 });
+  portraitLanes = children.get(roots[0].id) || [];
+  portraitStartY = 168;
+}
+const portraitColumns = portraitLanes.length === 1 ? [224, 224] : [116, 332];
+function placePortrait(id, column) {
+  portraitPositions.set(id, { x: portraitColumns[column], y: portraitStartY + portraitRows[column] * 88 });
+  portraitRows[column]++;
+  for (const child of children.get(id) || []) placePortrait(child, column);
+}
+for (const id of portraitLanes) {
+  placePortrait(id, portraitRows[0] <= portraitRows[1] ? 0 : 1);
+}
+
+const compactPositions = new Map();
+const traversal = [];
+function visit(id) {
+  traversal.push(id);
+  for (const child of children.get(id) || []) visit(child);
+}
+roots.forEach((root) => visit(root.id));
+// A wider grid keeps short landscape screens from shrinking the node labels.
+const compactColumns = Math.min(nodes.length, Math.ceil(Math.sqrt(nodes.length * 1.25)));
+traversal.forEach((id, index) => {
+  compactPositions.set(id, { x: 116 + (index % compactColumns) * 216, y: 64 + Math.floor(index / compactColumns) * 88 });
+});
+
 function edgePath(source, target) {
   const a = positions.get(source);
   const b = positions.get(target);
@@ -52,7 +85,7 @@ const incomingLabels = {
 const clientNodes = nodes.map((node) => ({
   id: node.id, title: node.title, summary: node.summary, html: node.html, category: node.category,
   categoryLabel: categoryLabel(node.category), color: categoryColor(node.category),
-  url: thoughtPath(node.id), ...positions.get(node.id),
+  url: thoughtPath(node.id), ...positions.get(node.id), portrait: portraitPositions.get(node.id), compact: compactPositions.get(node.id),
   parent: node.primary_parent ? {
     title: nodeMap.get(node.primary_parent).title, url: thoughtPath(node.primary_parent)
   } : null,
