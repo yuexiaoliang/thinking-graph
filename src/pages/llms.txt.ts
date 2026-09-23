@@ -12,25 +12,23 @@ export async function GET() {
   const lines = [
     "# Thinking Graph",
     "",
-    "> High-signal, traceable thought nodes. The thought corpus is primary; publishing and discoverability layers are derived.",
-    "",
-    "## Thought nodes",
+    "> High-signal, traceable thought nodes. Independent topics are peer roots; publishing and discoverability layers are derived.",
     ""
   ];
 
-  for (const node of model.nodes) {
-    lines.push(
-      "- [" +
-        node.title +
-        "](" +
-        linkFor(node) +
-        "): " +
-        node.summary
-    );
+  const groups = [
+    ["Topic entrypoints", model.roots],
+    ["Thought nodes", model.nodes.filter((node) => node.primary_parent !== null)]
+  ];
+  for (const [title, nodes] of groups) {
+    lines.push("## " + title, "");
+    for (const node of nodes) {
+      lines.push("- [" + node.title + "](" + linkFor(node) + "): " + node.summary);
+    }
+    lines.push("");
   }
 
-  // The prerendered .txt is later served as a static asset, so add a UTF-8 BOM
-  // instead of relying only on build-time Response headers for charset detection.
+  // Static assets retain a BOM for reliable UTF-8 detection after prerendering.
   return new Response("\uFEFF" + lines.join("\n") + "\n", {
     headers: {
       "Content-Type": "text/plain; charset=utf-8"

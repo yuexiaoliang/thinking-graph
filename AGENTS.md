@@ -1,85 +1,38 @@
 # AGENTS.md
 
-This file is the operating contract for any AI agent or human maintaining this repository.
+This is the operating contract for any AI agent or human maintaining this repository.
 
 ## 0. Prime directive and work-mode routing
 
-The **primary purpose** of this repository is to be a compact, high-signal, portable substrate for ongoing brainstorming by any AI agent.
-
-The website, visualization, build pipeline, Cloudflare deployment, SEO, and GEO are secondary. They exist to expose the thinking graph; they must never distort or inflate it.
-
-### Content-quality invariant
+The primary product is a **compact, high-signal, portable context for ongoing thinking by any AI**. The website, visualization, build pipeline, Cloudflare, SEO, and GEO are replaceable infrastructure; they must never distort or inflate the thought corpus.
 
 > **Never add redundant content for any reason.**
 
-Do not add content for SEO/GEO, keywords, length, polish, perceived completeness, or to make the repository look richer.
+The intentional functional layers are: conversation = admitted provenance; node = compressed reusable understanding; graph = topology. Do not add prose for keywords, polish, length, SEO/GEO, or perceived completeness.
 
-The only intentional overlap is functional:
+### Persistence gate
 
-- raw conversation = provenance;
-- node = compressed reusable understanding;
-- graph = topology.
+Before creating/updating any conversation, node, or edge, ask: **Will preserving this materially improve a future AI's ability to resume a line of thought the user is likely to care about?**
 
-Each layer must contain only what belongs to that role. A summary must compress; it must not duplicate its source.
+Admit material that forms, changes, challenges, or materially extends a durable idea, remains useful outside the immediate chat turn, and adds more future context value than noise. Normally reject casual chat, temporary errands/status, one-off operational questions, routine implementation/debugging, and incidental detours without lasting value. When uncertain, do not persist by default.
 
-### Persistence gate — decide whether content belongs before deciding branches
+This repository's own architecture, storage format, Agent protocol, website, visualization, deployment, maintenance, and debugging belong in protocol/engineering documentation and Git history, **not in `conversations/`, `nodes/`, or `graph.yaml`**. Durability alone does not make a repository rule thought content.
 
-Before creating or updating any conversation, node, or edge, ask:
+A host chat is not a persistence unit. Save only admitted thought segments, not rejected interludes. An unrelated but independently valuable long-running topic may become a separate root; do not invent a parent relation to the active topic.
 
-> **Will preserving this materially improve a future AI's ability to resume a line of thought the user is likely to care about?**
+### Choose work mode before reading
 
-Only admitted thought content may enter `conversations/`, `nodes/`, or `graph.yaml`.
+- **Brainstorm:** read [BRAINSTORM.md](./BRAINSTORM.md), then minimal relevant graph/node/source context. Do not load engineering files by default.
+- **Engineering:** when the user asks about code, publishing, deployment, schema, or repository operation, read this contract and only relevant engineering files.
+- **Mixed:** begin with thought scope; expand to engineering only when the requested action requires it.
 
-Strong admission signals:
-
-- it forms, changes, challenges, or materially extends a durable idea;
-- the user may reasonably want to resume this line of thinking later;
-- it has value outside the immediate chat turn;
-- preserving it improves future context more than it increases noise.
-
-Normally reject:
-
-- casual small talk or incidental remarks;
-- one-off factual/operational questions with no durable reasoning value;
-- temporary errands, scheduling, or status chatter;
-- routine implementation, debugging, deployment, or repository maintenance;
-- unrelated detours that the user has not indicated should become a lasting topic.
-
-Discussion about **this repository's own architecture, persistence format, agent protocol, website, visualization, deployment, maintenance, or debugging** belongs in repository documentation and Git history, not in the thought corpus. A rule being durable does not by itself make it thought content.
-
-If an unrelated topic is genuinely worth preserving as a long-running thought, admit it as a separate root/topic rather than inventing a parent relation to the current branch.
-
-When uncertain, **do not persist by default**. It is cheaper to omit low-value material than to permanently dilute future context.
-
-A host chat session is not a persistence unit. One ChatGPT/AI session may contain several admitted thought segments plus rejected interludes.
-
-### Choose the mode before reading files
-
-**Brainstorm mode:** read [BRAINSTORM.md](./BRAINSTORM.md), then only the minimum relevant graph/node/conversation context. Do not load engineering code by default.
-
-**Engineering mode:** when the user explicitly asks about the site, build, deployment, schema, visualization, or code, read the relevant engineering sections/files.
-
-**Mixed mode:** start with brainstorm scope and expand into engineering context only when the requested action actually requires it.
-
-If you opened `AGENTS.md` only to continue a thought, this section plus `BRAINSTORM.md` is enough; do not consume the rest of the engineering instructions unless needed.
+`BRAINSTORM.md` is the detailed semantic admission/granularity contract for **all** content edits, including engineering-driven cleanup. Sections below summarize it; implementation checks do not replace it.
 
 ---
 
 ## 1. Mission
 
-`thinking-graph` is a persistent, portable memory of **admitted high-signal thought conversations** and evolving ideas. It is not a complete archive of everything said in a host chat session.
-
-The repository must make it possible for a new AI session, a different AI system, or a human reader to:
-
-1. reconstruct where an idea came from;
-2. see which branch it belongs to;
-3. see which other topics it intersects with;
-4. read the original conversation that produced it;
-5. understand the current conclusion without rereading everything;
-6. resume from any chosen node without losing prior context;
-7. inspect how earlier conclusions were refined or contradicted over time.
-
-This is **not** merely a summary repository and **not** merely a transcript archive.
+Preserve admitted high-signal thought conversations and evolving understanding, not an archive of everything said. A new AI session or human should be able to reconstruct an idea's origin, read the admitted source, understand the current position without rereading everything, locate its branch and cross-topic relations, resume it, and inspect substantive refinements or contradictions.
 
 ---
 
@@ -87,74 +40,32 @@ This is **not** merely a summary repository and **not** merely a transcript arch
 
 Use two simultaneous structures:
 
-- **Tree-like provenance**: every non-root idea node has one `primary_parent`. This answers: “Where did this branch come from?”
-- **Graph-like relationships**: nodes may have many typed relationships to other nodes. This answers: “What else is this idea connected to?”
+- **Forest-like provenance:** every non-root has exactly one `primary_parent`; any number of independent roots have `primary_parent: null`.
+- **Graph-like relationships:** justified typed links may connect any nodes, including across roots.
 
-Therefore:
+File organization may look tree-like; the conceptual model is a graph. `ai-future` is one topic root, not a universal parent. `category` is a display/retrieval label, not parentage.
 
-> File organization may look tree-like, but the conceptual model is a graph.
-
-### Critical rule
-
-**Never use Git branches to represent thought branches.**
-
-Git branches are only for repository/version-control workflow. Thought branches live in conversation metadata, node metadata, and `graph.yaml`.
+**Never represent thought branches using Git branches.** Git branches are version-control workflow only.
 
 ---
 
 ## 3. Sources of truth
 
-There are three layers. Do not collapse them into one.
+### 3.1 `conversations/` — admitted provenance
 
-### 3.1 Admitted thought-conversation layer — `conversations/`
+A file represents a logical thought conversation or admitted segment, not necessarily an entire host session. Preserve retained user/assistant wording and order faithfully. Omit rejected interludes. Do not silently polish retained messages or replace them with summaries. Label reconstructed wording as reconstruction.
 
-Purpose: high-fidelity provenance for content that passed the persistence gate.
+Keep a coherent causal discussion together even when it yields several nodes. Split only when admitted material starts a durable independent problem space—not one file per node. A genuine child conversation records its parent and fork node. The first conversation for an unrelated root has both fields explicitly null.
 
-- A conversation file represents a **logical thought conversation**, not necessarily an entire ChatGPT/AI session.
-- Preserve admitted user and assistant turns as faithfully as possible.
-- Unrelated or rejected interludes from the host session do not need to be copied into the repository.
-- Do not silently rewrite retained messages to improve style.
-- Do not replace admitted conversation material with a summary.
-- Split into a new conversation only after the new material passes the persistence gate and represents a durable new problem space.
-- A child conversation must record its parent conversation and the node it forked from.
-- If admitted content is genuinely unrelated to the existing graph, start a new root/topic instead of manufacturing provenance.
+### 3.2 `nodes/` — reusable understanding
 
-### 3.2 Idea layer — `nodes/`
+A node contains a stable ID, title, kind, parent, source IDs, status/tags, current understanding, essential reasoning and conditions, and meaningful continuation. Its canonical body exists once. Link to it across topics; never copy it into several folders.
 
-Purpose: reusable understanding.
+### 3.3 `graph.yaml` — canonical topology
 
-A node contains:
+Contains the node index, files, primary parents, source IDs, navigation summaries/continuation hints, and typed relationships. Publishing derives navigation from it; never maintain a second handwritten graph or roots list.
 
-- stable ID;
-- title;
-- primary parent;
-- source conversations;
-- current summary;
-- key reasoning;
-- open questions;
-- continuation prompts;
-- status;
-- tags.
-
-A node body exists **once**. If it belongs to multiple topics, link to it; do not copy it into multiple folders/files.
-
-### 3.3 Relationship layer — `graph.yaml`
-
-Purpose: global topology.
-
-`graph.yaml` is the canonical relationship index used by agents and the publishing layer.
-
-It contains:
-
-- node index;
-- primary parent information;
-- cross-topic edges;
-- relation types;
-- file locations;
-- source conversation IDs;
-- summaries and continuation hints needed for navigation.
-
-The publishing layer must derive navigation and relationships from this data. It must not maintain a second hand-written relationship graph.
+Node metadata repeated in the graph must match the canonical file: `id`, `title`, `kind`, `category`, `status`, `primary_parent`, and the set of `source_conversations`. Update them together.
 
 ---
 
@@ -166,80 +77,34 @@ The publishing layer must derive navigation and relationships from this data. It
 ├── BRAINSTORM.md
 ├── README.md
 ├── CLOUDFLARE.md
+├── graph.yaml
+├── conversations/       # admitted provenance
+├── nodes/               # reusable understanding
+├── lib/                 # loading, rendering, structural validation
+├── scripts/             # validation entry point
+├── tests/               # engineering fixtures, never thought content
+├── schema/
+├── src/                 # replaceable Astro publishing layer
 ├── package.json
 ├── astro.config.mjs
-├── wrangler.jsonc
-├── graph.yaml
-├── conversations/        # thought provenance
-├── nodes/                # compact reusable understanding
-├── lib/
-│   └── thinking-graph.mjs
-├── scripts/
-│   └── validate-graph.mjs
-├── schema/
-└── src/                  # replaceable Astro publishing layer
-    ├── components/
-    ├── layouts/
-    ├── pages/
-    └── styles/
+└── wrangler.jsonc
 ```
 
-Generated by Astro (never committed):
-
-```text
-dist/
-├── index.html
-├── thoughts/<node-id>/index.html
-├── conversations/<conversation-id>/index.html
-├── robots.txt
-├── llms.txt
-├── sitemap-*.xml         # when SITE_URL is configured
-├── _astro/
-└── 404.html
-```
-
-Do not create empty placeholder folders. Git does not preserve empty directories.
+Generated `dist/` and `.astro/` are disposable and must not be committed. Static output includes `/`, `/thoughts/<id>/`, `/conversations/<id>/`, `/thoughts/`, `llms.txt`, `robots.txt`, `404.html`, assets, and sitemap files when `SITE_URL` is configured. Do not create empty placeholder folders.
 
 ---
 
 ## 5. Stable identifiers
 
-IDs must be:
+Use descriptive lowercase ASCII kebab-case IDs. Keep IDs stable after publication; change display titles rather than renaming referenced IDs. Conversation IDs are date-scoped, e.g. `conv-20260922-001`.
 
-- lowercase;
-- ASCII;
-- kebab-case;
-- descriptive;
-- stable after publication.
-
-Examples:
-
-```text
-ai-future
-future-talent
-verification-architecture
-white-collar-displacement
-real-world-data-value
-```
-
-Conversation IDs should be date-scoped:
-
-```text
-conv-20260922-001
-conv-20260922-002
-```
-
-Do not rename an ID merely to improve wording once other nodes reference it. Change the display title instead.
+A type change from concept to topic is not an ID change. Do not rename/reparent a node merely to tidy a taxonomy.
 
 ---
 
 ## 6. Conversation file contract
 
-A conversation file is created **only after the persistence gate passes**. It captures one logical thought thread or admitted segment; it is not required to mirror the boundaries of the host chat session.
-
-Each conversation file begins with YAML front matter.
-
-Required fields:
+Create a conversation file only after admission. Required front matter:
 
 ```yaml
 ---
@@ -256,55 +121,37 @@ tags:
 ---
 ```
 
-For a fork:
+For a genuine fork, replace the two nulls with the actual parent conversation ID and originating node ID. Do not use chat adjacency as evidence of provenance.
 
-```yaml
-primary_parent_conversation: conv-20260922-001
-forked_from_node: future-talent
-```
-
-### Conversation body
-
-Use this form for the admitted turns:
+Body:
 
 ```markdown
 ## Conversation
 
 ### User
 
-Exact or high-fidelity admitted user message.
+Exact or high-fidelity admitted message.
 
 ### Assistant
 
-Exact or high-fidelity admitted assistant response.
+Exact or high-fidelity admitted response.
 
-### User
-
-...
-```
-
-A host session may contain unrelated interludes before the thought resumes. Those rejected passages may be omitted rather than polluting provenance. Preserve the order and wording of the turns that are retained.
-
-Then append:
-
-```markdown
 ## Branch outcome
 
-Short factual description of what changed in the graph.
+Short factual description of the original graph outcome.
 
 ## Continue from here
 
 - unresolved question
-- plausible next branch
 ```
 
-“Branch outcome” is secondary metadata. It never replaces the admitted transcript.
+Preserve admitted turns in order; rejected interludes may be omitted. Outcome/continuation metadata never replaces the transcript. Historical `nodes`/Branch outcome describes what the conversation originally produced; current backlinks are derived from node source references, not by rewriting old dialogue as summaries evolve.
 
 ---
 
 ## 7. Node file contract
 
-Each node file begins with YAML front matter:
+Required front matter:
 
 ```yaml
 ---
@@ -322,390 +169,190 @@ tags:
 ---
 ```
 
-Recommended body:
+Recommended body sections: Current understanding; Why this node exists or Scope; Key reasoning; necessary conditions/boundaries; optional Source scope; Open questions; Continue From Here. Do not insert empty boilerplate sections merely to match a template.
 
-```markdown
-# Title
+Minimum semantic unit:
 
-## Current understanding
+> One independently resumable question + current understanding + essential reasoning + conditions needed to interpret the claim correctly.
 
-...
+`topic` is an overview/problem space, either root or nested. It synthesizes and routes, rather than repeating child arguments. `concept` carries an independent mechanism, proposition, explanation, or role boundary. `question` is a substantive, scoped unresolved problem with known context—not every speculative follow-up. `meta` remains schema-compatible but does not override the exclusion of repository-maintenance content.
 
-## Why this node exists
-
-...
-
-## Key reasoning
-
-...
-
-## Cross-links
-
-- relation -> node
-
-## Open questions
-
-...
-
-## Continue From Here
-
-...
-```
-
-Keep node summaries compact enough for an AI to reload quickly, but preserve the source conversation separately.
+For long sources, a compact `Source scope` may link the original conversation and name exact headings or distinctive short phrases. It is a textual locator, not a generated deep-link guarantee. Do not split or rewrite transcripts merely to improve source lookup.
 
 ---
 
-## 8. Persistence first, branching second
+## 8. Persistence first, granularity second
 
-A topic change is **not** automatically a branch.
-
-Always use this order:
+Follow [BRAINSTORM.md](./BRAINSTORM.md)'s routing table and five semantic checks.
 
 ```text
-new discussion
-    ↓
-persistence gate: worth long-term memory?
-    ├── no → ignore; write nothing to the thought corpus
-    └── yes
-          ↓
-same durable problem?
-    ├── yes → continue/update the current node
-    └── no
-          ↓
-meaningful independent line of thought?
-    ├── yes → create a new branch, or a new root if unrelated
-    └── no → ignore
+new material
+  → persistence gate (reject means write nothing)
+  → search existing questions across the graph, not only the active branch
+  → same question: update canonical node
+  → independent increment: assess separate retrieval/continuation value
+      → genuine earlier idea prompted it: child branch
+      → no genuine parent: peer root
 ```
 
-After admission, strong signals for a fork include:
+A new actor, evidence base, causal question, or possible long discussion is a candidate signal, not sufficient permission to split. Require a distinct question, independent durable increment, standalone meaning, separate continuation, and net context value.
 
-1. the user asks a new causal or strategic question;
-2. the answer requires a substantially different evidence base;
-3. the new discussion could continue independently for many turns;
-4. a new actor/system/market becomes the main object of analysis;
-5. the user explicitly asks to branch or revisit a prior branch.
+Keep new examples, necessary qualifications, evidence, explanations, subskills, and minor corrections with the existing question. A name or a list of future questions is not enough for a new node. Do not use word count, fixed depth, or a target node count as a splitting rule.
 
-A shift to a meta-level topic is only a fork **if that meta topic itself passes the persistence gate**. Repository/self-maintenance discussion does not.
-
-Examples:
-
-- “未来什么人才稀缺？” → “白领会不会挤压蓝领？” can be an admitted fork.
-- “白领挤压蓝领” → “这些人会不会大量做自媒体？” can become a fork when content economics becomes the main durable subject.
-- “AI 未来” → “我的电脑这条命令怎么写？” is a topic change but normally **not** a thought branch.
-- “AI 未来” → discussion of how this repository should store branches is repository maintenance and **not** thought content.
-- Clarifying one sentence inside the same argument is not necessarily a fork.
-
-When uncertain about admission, omit. When admitted but unrelated to the current graph, prefer a new root rather than a false parent-child edge.
+Keep claims with indispensable conditions: do not separate the risk of unverified recursive AI data from the distinction that reliably verified synthetic data can differ. Do not invent conclusions just to make a node look independent.
 
 ---
 
-## 9. Primary parent rule
+## 9. Primary parents and peer roots
 
-Every non-root node has exactly one `primary_parent`.
+Each non-root has exactly one valid `primary_parent`. Choose the earlier idea that genuinely prompted the investigation, not whichever node happens to be active or shares its category. Each non-root also has exactly one matching child → parent `forked_from` edge.
 
-Choose the node that best answers:
+Every root has:
 
-> “Which earlier idea directly caused this idea to be investigated?”
+```yaml
+kind: topic
+primary_parent: null
+```
 
-This preserves provenance even when many cross-links exist.
+Roots have no outgoing `forked_from` edge. Multiple disconnected roots are valid. Do not create a fake universal root, force all topics under `ai-future`, or invent links just to make the graph connected. Do not create empty example roots or a wrapper plus an identical child; a substantial new topic can start without children.
 
-Do not assign multiple primary parents.
+Independent topics in the same host chat may have separate root conversations (`primary_parent_conversation: null`, `forked_from_node: null`). Cross-root associations use semantic edges and do not change primary provenance. A subject change genuinely prompted by an existing idea can remain its child even if the category changes.
+
+Roots and each node's root membership are derived from the acyclic parent forest. Categories neither determine nor restrict root membership. Existing published nodes must not be reparented merely for cosmetic grouping.
 
 ---
 
 ## 10. Cross-topic relation types
 
-Use only these relation types unless AGENTS.md is deliberately amended:
+Use only these unless this contract and schema are deliberately amended:
 
-### `related_to`
-There is a useful association, but no strong directional claim.
+| Type | Direction/meaning |
+| --- | --- |
+| `related_to` | Useful association without a stronger directional claim |
+| `supports` | Source supplies reasoning/evidence supporting target |
+| `contradicts` | Source conflicts with target conclusion |
+| `refines` | Source is a substantively more precise later position |
+| `leads_to` | Source raises target as a next question |
+| `depends_on` | Understanding/accepting source materially depends on target |
+| `forked_from` | Child source arose from target parent |
 
-### `supports`
-The source node supplies reasoning/evidence supporting the target node.
+Every edge needs a specific, nonempty `reason`. The node's `primary_parent` is canonical for parentage; duplicated fork edges must agree with it. Primary-parent cycles are forbidden; legitimate cross-topic graph cycles are allowed. Reject duplicate/self edges.
 
-### `contradicts`
-The source node conflicts with the target conclusion. Preserve both nodes.
-
-### `refines`
-The source node is a later, more precise version of the target. Do not delete the older view.
-
-### `leads_to`
-The source naturally raises the target as a next question.
-
-### `depends_on`
-Understanding or accepting the source materially depends on the target.
-
-### `forked_from`
-Used for explicit provenance when representing a branch edge in relationship data. The node's `primary_parent` remains the canonical parent field.
-
-Each non-trivial cross-link should have a short `reason` in `graph.yaml`.
-
-Do not invent a dense web of weak relations just because two nodes share keywords.
+A typed relation mentioned only in prose or a backticked node ID does not create a graph edge. Record useful semantic relations in `graph.yaml`; avoid a second relation list in prose. Do not invent dense keyword-based links or duplicate parent/child navigation with unnecessary semantic edges.
 
 ---
 
-## 11. Cross-topic overlap
+## 11. Cross-topic overlap and cleanup
 
-Multiple topics are expected to overlap.
+One idea, one canonical node file. Multiple topics can link to it. Do not copy `real-world-data-value` into separate data, talent, and business folders.
 
-Correct:
+For existing content, first clarify scope, correct kind, remove repeated child arguments from overviews, and complete genuine sources/relationships. A short node is not automatically too granular. A broad overview is not a reason to split every listed capability.
 
-```text
-real-world-data-value
-  related_to -> creator-economy-influx
-  supports   -> real-world-connector
-  leads_to   -> data-collection-business
-```
-
-Incorrect:
-
-```text
-nodes/data/real-world-data-value.md
-nodes/talent/real-world-data-value.md
-nodes/business/real-world-data-value.md
-```
-
-One idea, one canonical node file.
+Do not silently merge published branches. Explicit merges require preserving independent provenance, updating references, and a URL compatibility/redirect plan. Preserve stable IDs for ordinary cleanup. Engineering fixtures/examples stay in `tests/` or docs and must never enter the corpus or published thought index.
 
 ---
 
 ## 12. Evolving or corrected views
 
-Never rewrite history to make the repository look internally consistent.
+Never rewrite history to make thinking appear consistent. If a substantive later position changes an earlier conclusion and the difference deserves preservation: keep the original conversation/node, create or update the new position, link with `refines` or `contradicts`, and optionally mark the earlier node `superseded`. Use `superseded_by` only for clear replacement.
 
-If a later discussion changes an earlier conclusion:
-
-1. keep the original conversation;
-2. keep the original node;
-3. create/update the new node;
-4. connect it using `refines` or `contradicts`;
-5. optionally mark the old node `status: superseded`;
-6. add `superseded_by` only when the new position clearly replaces the old one.
-
-This repository should expose cognitive evolution, not hide it.
+Routine wording fixes, new examples, and minor clarifications update the same canonical node. Do not manufacture a new evolution node for every edit. Required conditions belong with the current claim; material changes must not silently erase an earlier substantive position.
 
 ---
 
 ## 13. Starting a new AI session
 
-Determine the work mode first.
+Choose work mode first. In brainstorm mode: read `BRAINSTORM.md`, locate the relevant question in `graph.yaml`, read its node, then expand to parents/relations/sources only as needed. A named node is the active anchor. If no node matches, consider a new admitted root instead of defaulting to `ai-future`.
 
-### Brainstorm-only session
-
-1. Read `BRAINSTORM.md`.
-2. Use `graph.yaml` only to locate the requested/most relevant node.
-3. Read that node.
-4. Expand to parent, related nodes, or source conversations only when the current question requires them.
-5. Do **not** load implementation/deployment files.
-
-If the user says “continue from node X,” node X is the active context anchor.
-
-### Engineering session
-
-Read this full `AGENTS.md`, then only the engineering files required by the requested change.
-
-### Mixed session
-
-Start with the brainstorm-only scope. Load engineering context only when the user asks for an implementation change.
+Do not load `src/`, `lib/`, `scripts/`, `tests/`, schema, deployment configuration, or generated output during pure brainstorming without a concrete engineering need. Engineering sessions read this full contract and relevant implementation files; mixed sessions expand scope only as needed.
 
 ---
 
-## 14. Adding a new brainstorming conversation
+## 14. Adding or updating thought content
 
-For every discussion that may contain durable thinking:
+1. Admit durable thought segments; discard rejected interludes.
+2. Search existing canonical questions and apply semantic granularity checks.
+3. Decide update, genuine child, independent root, relation, or meaningful revision.
+4. Save admitted high-fidelity provenance without replacing earlier transcripts.
+5. Update node understanding, essential conditions, and actual source references.
+6. Synchronize graph metadata/relations; update `updated_at`.
+7. Review scope, non-duplication, parent rationale, and source locators.
+8. Run `npm run check`; run `npm run build` for publishing-sensitive changes when tooling is available. Report unrun checks honestly.
+9. Publish one complete atomic commit.
 
-1. Apply the **persistence gate** to the new material.
-2. Drop rejected interludes; do not create corpus files for them.
-3. For admitted material, identify the active node if one exists.
-4. Decide whether it continues the same node, creates a meaningful branch, or starts a new root/topic.
-5. Save the admitted high-fidelity thought segment in `conversations/YYYY-MM-DD/`.
-6. Create or update node files.
-7. Update `graph.yaml`.
-8. Add cross-links only when they add real navigational value.
-9. Update `updated_at`.
-10. Run `npm run check` when a Node environment is available.
-11. Run `npm run build` when changing publishing/deployment-sensitive files and verify the generated SSG output.
-12. Commit with a descriptive message.
+When a synthesis uses new conversations, add the actual source IDs to both node front matter and graph; do not inherit every source mechanically from descendants.
 
-Routine implementation/debug/deployment chatter and discussion about this repository's own operation stay in Git history and engineering/protocol documentation. **Do not promote them into the thought corpus merely because they establish a durable repository rule.**
-
-Preferred commit patterns:
-
-```text
-content: add branch on AI evaluation
-content: continue real-world data branch
-graph: link creator economy to data provenance
-docs: clarify persistence gate
-viz: improve graph navigation
-```
+Repository rules, debugging, deployment, and this system's own operation remain documentation/Git history, not thought conversations. Suggested commit prefixes: `content:`, `graph:`, `docs:`, `viz:`.
 
 ---
 
 ## 15. Astro SSG publishing contract
 
-Astro is a **replaceable publishing layer**, not part of the thought corpus.
-
-### Source direction
+Canonical direction:
 
 ```text
-conversations/ + nodes/ + graph.yaml
-                ↓
-             Astro SSG
-                ↓
-              dist/
+conversations/ + nodes/ + graph.yaml → Astro SSG → dist/
 ```
 
-The publishing layer adapts to the thought data. Thought data must never be reshaped, expanded, or duplicated merely to satisfy Astro, SEO, GEO, or presentation concerns.
+Every node has a real `/thoughts/<id>/` static URL. Every conversation has `/conversations/<id>/`, normally `noindex,follow` so provenance does not compete with compressed nodes. The homepage keeps the interactive graph and real crawlable links. Render and sanitize Markdown at build time; public reading pages must not depend on browser-side Markdown fetching/rendering.
 
-### Static page rules
+Preserve progressive enhancement: desktop defaults to graph, mobile to readable list; static links work without JavaScript. Preserve current-page graph-node reading with optional standalone URLs, keyboard controls, modal focus handling, ordinary page scrolling, and URL-restorable browsing state. Do not regress the flat mobile reading layout.
 
-- Every graph node gets a real static URL: `/thoughts/<node-id>/`.
-- Node pages are the primary indexable content surface.
-- Every source conversation gets a static provenance URL: `/conversations/<conversation-id>/`.
-- Conversation pages default to `noindex,follow` so provenance stays accessible without competing with the compressed node page.
-- The home page keeps the interactive graph, but graph nodes must also expose real crawlable `<a href>` links.
-- Keep the explorer progressively enhanced: static node links remain usable without JavaScript; desktop defaults to the graph, mobile to a readable list. Preserve keyboard navigation, modal focus handling, ordinary page scrolling, and URL-restorable filters when changing interactions.
-- Internal links must be derived from real graph structure: primary parent, children, typed relations, backlinks, and source conversations.
-- `graph.yaml` remains the relationship source of truth.
+Navigation derives from actual parents, children, typed relations, incoming links, sources, and **all roots**, never a hard-coded `ai-future` assumption. Category labels are not topic-root labels. `graph.yaml` remains the sole relationship source.
 
-### SEO/GEO derivation rules
-
-Allowed derived artifacts include:
-
-- semantic HTML;
-- canonical URL and Open Graph metadata;
-- JSON-LD based on existing node metadata;
-- breadcrumbs;
-- sitemap;
-- robots.txt;
-- llms.txt;
-- machine-readable graph relations;
-- internal links backed by real graph edges.
-
-Do not generate new prose, artificial FAQs, keyword variants, expanded summaries, or extra thought pages for discoverability.
-
-`SITE_URL` controls production canonical URLs and sitemap generation. When it is absent, the site still builds, but no fake production origin may be invented.
-
-### Build-time Markdown
-
-Markdown is rendered and sanitized at build time. Public reading pages must not depend on browser-side Markdown fetching/rendering.
+SEO/GEO may derive semantic HTML, canonical/Open Graph metadata, JSON-LD, breadcrumbs, sitemap, robots.txt, llms.txt, and machine-readable relations. Never create expanded prose, FAQs, keyword variants, or artificial thought pages. `SITE_URL` enables production absolute URLs and sitemap; without it, build without inventing an origin.
 
 ---
 
-## 16. Data quality rules
+## 16. Data quality and validation
 
-### Admit before preserving
-Provenance requirements apply only **after** content passes the persistence gate. Do not preserve low-value material merely to make a host chat session look complete.
+Preserve only admitted provenance; do not save low-value material for transcript completeness. Every substantive node has at least one real source conversation. Separate external facts, inference, and uncertainty; retain available source URLs/citations. Do not fabricate past wording.
 
-### Preserve provenance
-A conclusion without an admitted source conversation is suspect. Every substantive node should normally have at least one source conversation.
+Structural validation checks the parent forest, root kind, valid references, matching fork edges, known edge types/reasons, unique IDs/files, source lists, and agreement between graph metadata and node front matter. It accepts multiple roots and cross-root semantic edges. Regression fixtures cover these cases without adding demonstration thought content.
 
-### Separate fact from inference
-When a node contains external factual claims, keep source URLs/citations in the source conversation or node notes when available.
-
-### Do not fabricate transcript
-If exact past wording is unavailable, label reconstructed text as a reconstruction rather than presenting it as exact.
-
-### Do not over-summarize
-If an admitted thought conversation exists, keep its retained turns high-fidelity. Summaries are navigation aids, not replacements. This does not require preserving rejected or unrelated host-session interludes.
-
-### Preserve signal density
-Do not add filler, duplicate explanations, keyword-expanded prose, artificial FAQs, or content whose only purpose is SEO/GEO, page length, or polish. When in doubt, omit rather than pad.
-
-Routine engineering chatter and this repository's own design/maintenance discussion are not part of the thought corpus. Durable repository rules belong in protocol/engineering documentation, not in nodes or thought conversations.
-
-### Do not silently merge branches
-Two similar nodes may later be linked or explicitly merged, but never erase their independent provenance casually.
+**Structural validity does not prove semantic novelty, good granularity, admission, or factual truth.** Perform the BRAINSTORM review separately. Preserve signal density; no filler, duplicated explanations, artificial FAQs, or SEO-driven content.
 
 ---
 
 ## 17. Prohibited patterns
 
-Do **not**:
-
-- represent thought forks with Git branches;
-- duplicate one node body under multiple topic directories;
-- replace original conversations with summaries;
-- delete old conclusions merely because a newer view exists;
-- add cross-links based only on keyword overlap;
-- hard-code a second graph inside the publishing layer;
-- change stable node IDs casually;
-- flatten all discussion into one giant markdown file;
-- create an “archive” that removes old thinking from the active provenance graph;
-- fabricate missing historical conversation;
-- commit generated `dist/` output;
-- treat Cloudflare or Astro as the source of truth instead of GitHub thought files;
-- load `src/`, `lib/`, `scripts/`, Astro, or Cloudflare engineering code during a brainstorm-only session without a concrete need;
-- persist content that has not passed the persistence gate;
-- treat every topic change as a thought branch;
-- mirror an entire host chat session into `conversations/` merely because some turns are relevant;
-- persist this repository's own architecture, agent protocol, deployment, visualization, maintenance, or debugging discussion as thought content;
-- persist routine build/deploy/debug chatter as a thought conversation;
-- add filler or duplicate content for SEO, GEO, keywords, length, or perceived completeness.
+Do not: use Git branches for thought forks; duplicate node bodies; replace retained conversations with summaries; erase earlier conclusions; add keyword-only links; hard-code a second graph/root list; casually change IDs or parents; flatten all thoughts into one giant file; create an archive that removes earlier thought from provenance; fabricate historical dialogue; commit generated output; treat Cloudflare/Astro as source of truth; load engineering context unnecessarily; persist rejected interludes or repository self-maintenance; create a node for every topic change/name/heading; force independent topics under `ai-future`; or add content for length, keywords, SEO/GEO, or perceived completeness.
 
 ---
 
-## 18. Definition of done for a new branch
+## 18. Definition of done
 
-A branch is not complete until:
-
-- [ ] the material passed the persistence gate;
-- [ ] only the admitted high-fidelity thought segment is saved;
-- [ ] conversation metadata names its parent/fork node;
-- [ ] relevant node exists or is updated;
-- [ ] node has source conversation reference;
-- [ ] `graph.yaml` contains the node;
-- [ ] `primary_parent` is valid;
-- [ ] meaningful cross-links are recorded;
-- [ ] open questions / Continue From Here are present;
-- [ ] `npm run check` passes when tooling is available;
-- [ ] Astro can render the relevant static pages;
-- [ ] change is committed.
+- [ ] Material passed admission; only admitted high-fidelity provenance is saved.
+- [ ] Existing canonical questions were checked across relevant roots.
+- [ ] New nodes pass distinct-question, independent-increment, standalone-meaning, separate-continuation, and net-value checks.
+- [ ] Kind/scope are appropriate; necessary conditions remain with the claim.
+- [ ] Child parent/fork metadata is genuine, or independent-root metadata is explicitly null.
+- [ ] Node/graph metadata and real source references agree; long-source locators are useful where needed.
+- [ ] Meaningful semantic links are in `graph.yaml`; no redundant content or invented links.
+- [ ] Continuation reflects real open issues, not empty placeholder branches.
+- [ ] `npm run check` passes when tooling is available; relevant SSG pages build for publishing-sensitive changes.
+- [ ] Complete logical change is committed atomically, with any validation limitations reported.
 
 ---
 
-## 19. Current repository philosophy
+## 19. Repository philosophy
 
-The long-term goal is not to produce a perfect ontology in advance.
+Do not prebuild a perfect ontology. Preserve:
 
-The goal is to preserve:
+> admission → thought conversation → update/branch/root → reasoning → conclusion → revision → next durable thought
 
-> **admission → thought conversation → branch/root → reasoning → conclusion → revision → next durable thought**
-
-with enough structure that future AI systems can reconstruct and extend it.
-
-When forced to choose between a neat structure and preserving provenance, preserve provenance.
-
+When neat structure conflicts with provenance, preserve provenance. Optimize for a future AI resuming a meaningful question, not a target number of nodes.
 
 ---
 
 ## 20. Build and deployment contract
 
-The deployment target is **Astro static output served by Cloudflare Workers Static Assets**.
+Target: **Astro static output served by Cloudflare Workers Static Assets**. Do not add SSR or `@astrojs/cloudflare` without a genuine runtime requirement.
 
-Astro runs as SSG only. Do not add `@astrojs/cloudflare` or SSR unless a future user requirement genuinely needs runtime server logic.
-
-### Source of truth
-
-Canonical thought data:
-
-- `graph.yaml`
-- `nodes/`
-- `conversations/`
-
-Replaceable publishing/engineering layer:
-
-- `src/`
-- `lib/`
-- `scripts/`
-- `astro.config.mjs`
-- `package.json`
-- `wrangler.jsonc`
-
-### Commands
+Canonical thought data: `graph.yaml`, `nodes/`, `conversations/`. Replaceable infrastructure: `src/`, `lib/`, `scripts/`, `tests/`, Astro configuration, package manifest, Wrangler configuration.
 
 ```bash
+npm test
 npm run check
 npm run dev
 npm run build
@@ -713,113 +360,32 @@ npm run preview
 npm run deploy
 ```
 
-`npm run build` runs graph validation first, then `astro build`.
+`npm test` runs dependency-free Node structural tests. `npm run check` runs tests and loads/validates the actual graph. `npm run build` checks the graph before `astro build`. `wrangler.jsonc` serves `./dist`.
 
-### Cloudflare configuration
+Workers Builds: build command `npm run build`; deploy command `npx wrangler deploy`; production branch `main`. Set `SITE_URL` to the final public origin for canonical URLs, sitemap, JSON-LD, and absolute llms.txt links. Generated `dist/` and `.astro/` stay ignored.
 
-`wrangler.jsonc` serves:
-
-```text
-./dist
-```
-
-Workers Builds:
-
-```text
-Build command:  npm run build
-Deploy command: npx wrangler deploy
-Production branch: main
-```
-
-Set `SITE_URL` in the production build environment to the final public origin. This enables correct canonical URLs and sitemap generation.
-
-### Generated files
-
-`dist/` and `.astro/` are disposable build output and ignored by Git.
-
-If publishing/deployment behavior changes, update the relevant code plus `README.md`, `CLOUDFLARE.md`, and this contract in the same logical commit.
+When changing publishing behavior, synchronize relevant code, README, and this contract. Update `CLOUDFLARE.md` as well when deployment configuration/behavior is affected; do not add documentation-only deployment claims unrelated to the actual change.
 
 ---
 
 ## 21. Atomic Git commit and deployment contract
 
-Cloudflare builds are triggered by updates to `main`. Therefore repository writes must preserve **logical-change atomicity**.
+Cloudflare builds are triggered by updates to `main`.
 
-### Core rule
+> **One logical change set = one Git commit = one main ref update = one Cloudflare build trigger.**
 
-> One logical change set = one Git commit = one `main` ref update = one Cloudflare build.
-
-A logical change set may include many files, such as:
+Prepare all related content, graph, code, tests, and documentation together. Prefer Git Data, not a sequence of Contents API writes to `main`:
 
 ```text
-conversation
-+ node
-+ graph.yaml
-+ Astro publishing layer
-+ build scripts
-+ docs
+read current main ref and base tree
+→ prepare every changed file completely
+→ create_blob for changed files
+→ create one tree based on current tree
+→ create one commit with current main as parent
+→ re-check main has not moved
+→ update_ref(main) exactly once, force=false
 ```
 
-Those files must reach `main` together as one complete state.
+Blob/tree/commit creation does not publish intermediate states. Immediately before updating the ref, confirm it still matches the parent SHA. If it moved, do not publish the stale commit or force-update: read the new head/tree, reconcile, and create a new commit against that parent.
 
-### Required write path for agents
-
-For agent-managed updates, prefer the Git Data flow and do not perform a sequence of Contents API writes directly against `main`.
-
-Required sequence:
-
-```text
-read current main ref
-        ↓
-read current base tree
-        ↓
-prepare every changed file completely
-        ↓
-create_blob for each changed file
-        ↓
-create one tree based on current tree
-        ↓
-create one commit with current main as parent
-        ↓
-re-check main has not moved
-        ↓
-update_ref(main) exactly once, force=false
-```
-
-The `create_blob`, `create_tree`, and `create_commit` steps do not publish an incomplete state because the new objects are not reachable from `main` until the final ref update.
-
-### Race/conflict rule
-
-Immediately before updating `main`, verify that the branch still points to the parent SHA used to create the commit.
-
-If `main` moved:
-
-1. **do not force-update**;
-2. do not publish the stale commit;
-3. read the new head/tree;
-4. reconcile/reapply the logical change set;
-5. create a new commit against the new parent.
-
-### Prohibited deployment patterns
-
-Agents must not:
-
-- call `create_file` / `update_file` repeatedly on `main` for one logical change;
-- publish intermediate states merely because one file is ready;
-- use `force=true` to bypass a moved `main`;
-- split one coherent feature/content update into many deployment-triggering commits unless the user explicitly wants separate releases.
-
-### Single-file changes
-
-A truly independent one-file change may still be one commit, but agent automation should default to the same Git Data atomic flow so the publishing behavior stays consistent.
-
-### Why this matters
-
-The repository is connected to Cloudflare deployment. Multiple implementation-detail commits for one feature would otherwise cause:
-
-- redundant build queue entries;
-- unnecessary deployment latency;
-- intermediate incomplete versions becoming deployable;
-- noisy Git history.
-
-Treat `main` as a release boundary, not as a scratchpad.
+Never issue repeated `create_file`/`update_file` writes to main for one feature, publish partly prepared files, bypass a race with `force=true`, or split a coherent change into deployment-triggering implementation commits unless explicitly requested. Even independent single-file changes should default to this atomic flow. Treat main as a release boundary, not a scratchpad.

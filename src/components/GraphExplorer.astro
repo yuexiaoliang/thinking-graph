@@ -3,12 +3,11 @@ import { RELATION_LABELS, thoughtPath, conversationPath } from "../../lib/thinki
 import { categoryLabel, categoryColor, statusLabel } from "../lib/presentation.js";
 
 const { model, listOnly = false } = Astro.props;
-const { nodes, nodeMap } = model;
+const { nodes, nodeMap, roots } = model;
 const children = new Map(nodes.map((node) => [node.id, []]));
 for (const node of nodes) {
   if (node.primary_parent) children.get(node.primary_parent)?.push(node.id);
 }
-const roots = nodes.filter((node) => !node.primary_parent);
 const positions = new Map();
 let leafCursor = 0;
 function place(id, depth) {
@@ -82,6 +81,11 @@ const payload = JSON.stringify(clientNodes).replace(/</g, "\\u003c");
     </div>}
   </div>
 
+  {roots.length > 0 && <nav class="topic-entrypoints" aria-label="顶层话题总览">
+    <span>顶层话题</span>
+    {roots.map((root) => <a href={thoughtPath(root.id)}>{root.title}</a>)}
+  </nav>}
+
   <div class="explorer-toolbar" data-enhanced hidden>
     <div class="search-field">
       <label class="sr-only" for="node-search">搜索思想节点</label>
@@ -89,7 +93,7 @@ const payload = JSON.stringify(clientNodes).replace(/</g, "\\u003c");
       <kbd class="search-shortcut" aria-hidden="true">/</kbd>
     </div>
     <label class="category-field"><span class="sr-only">按类别筛选</span><select data-graph-category>
-      <option value="all">全部主题</option>
+      <option value="all">全部类别</option>
       {categories.map((category) => <option value={category}>{categoryLabel(category)}</option>)}
     </select></label>
     <button class="text-button filter-reset" type="button" data-clear-filters hidden>清除筛选</button>
@@ -97,7 +101,7 @@ const payload = JSON.stringify(clientNodes).replace(/</g, "\\u003c");
 
   <div class="empty-state panel" data-empty-state hidden>
     <h3>没有找到匹配的节点</h3>
-    <p>试试更短的关键词，或清除主题筛选。</p>
+    <p>试试更短的关键词，或清除类别筛选。</p>
     <button class="button" type="button" data-clear-filters>查看全部节点</button>
   </div>
 
@@ -158,6 +162,12 @@ const payload = JSON.stringify(clientNodes).replace(/</g, "\\u003c");
   <noscript><p class="empty-note">可直接阅读上方节点；启用 JavaScript 后可使用筛选与交互图谱。</p></noscript>
   <script type="application/json" data-graph-data is:inline set:html={payload}></script>
 </section>
+
+<style>
+  .topic-entrypoints { display: flex; flex-wrap: wrap; align-items: baseline; gap: .5rem 1rem; margin: 0 0 1rem; }
+  .topic-entrypoints > span { opacity: .7; font-size: .875rem; }
+  .topic-entrypoints a { text-underline-offset: .2em; overflow-wrap: anywhere; }
+</style>
 
 <script>
   import { initExplorer } from "../scripts/graph-explorer.js";

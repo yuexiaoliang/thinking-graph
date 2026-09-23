@@ -9,16 +9,9 @@
     "updated_at": { "type": "string", "format": "date" },
     "relation_types": {
       "type": "array",
+      "minItems": 1,
       "items": {
-        "enum": [
-          "forked_from",
-          "related_to",
-          "supports",
-          "contradicts",
-          "refines",
-          "leads_to",
-          "depends_on"
-        ]
+        "enum": ["forked_from", "related_to", "supports", "contradicts", "refines", "leads_to", "depends_on"]
       },
       "uniqueItems": true
     },
@@ -26,18 +19,7 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": [
-          "id",
-          "title",
-          "kind",
-          "category",
-          "status",
-          "primary_parent",
-          "file",
-          "source_conversations",
-          "summary",
-          "continue"
-        ],
+        "required": ["id", "title", "kind", "category", "status", "primary_parent", "file", "source_conversations", "summary", "continue"],
         "properties": {
           "id": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
           "title": { "type": "string", "minLength": 1 },
@@ -45,6 +27,7 @@
           "category": { "type": "string", "minLength": 1 },
           "status": { "enum": ["active", "parked", "superseded", "closed"] },
           "primary_parent": {
+            "description": "Null identifies an independent topic root; any number of peer roots is allowed.",
             "anyOf": [
               { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
               { "type": "null" }
@@ -53,14 +36,23 @@
           "file": { "type": "string", "pattern": "^nodes/.+\\.md$" },
           "source_conversations": {
             "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
             "items": { "type": "string", "pattern": "^conv-[0-9]{8}-[0-9]{3,}$" }
           },
-          "summary": { "type": "string" },
+          "summary": { "type": "string", "minLength": 1 },
           "continue": {
             "type": "array",
-            "items": { "type": "string" }
+            "uniqueItems": true,
+            "items": { "type": "string", "minLength": 1 }
           }
         },
+        "allOf": [
+          {
+            "if": { "properties": { "primary_parent": { "type": "null" } }, "required": ["primary_parent"] },
+            "then": { "properties": { "kind": { "const": "topic" } } }
+          }
+        ],
         "additionalProperties": true
       }
     },
@@ -73,15 +65,7 @@
           "source": { "type": "string" },
           "target": { "type": "string" },
           "type": {
-            "enum": [
-              "forked_from",
-              "related_to",
-              "supports",
-              "contradicts",
-              "refines",
-              "leads_to",
-              "depends_on"
-            ]
+            "enum": ["forked_from", "related_to", "supports", "contradicts", "refines", "leads_to", "depends_on"]
           },
           "reason": { "type": "string", "minLength": 1 }
         },

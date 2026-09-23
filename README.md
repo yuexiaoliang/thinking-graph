@@ -4,24 +4,44 @@ A persistent, traceable graph of conversations, ideas, branches, cross-links, an
 
 > **核心不是网站，而是高信噪比、可移植的头脑风暴上下文。** Astro、可视化、SEO、GEO、构建和部署都只是附加层，不能反向增加冗余内容。
 
-这个仓库保存：
-
-- **通过准入的高保真思想对话**：作为思想来源与 provenance；
-- **思想节点**：压缩后的可复用理解；
-- **主分叉与跨话题关系**：保留思想从哪里来、和什么有关；
-- **认知演化**：用 `refines` / `contradicts` 等关系保留变化；
-- **继续入口**：让任意 AI Agent 从指定节点以最小上下文继续讨论。
+这个仓库保存通过准入的高保真思想对话、压缩后的可复用理解、真实主分叉与跨话题关系，以及有意义的认知演化。目标是让任意 AI Agent 从指定问题以最小上下文继续讨论。
 
 ## 核心原则
 
-1. **先做持久化准入，再判断是否分叉。** 话题变化不等于值得保存；不确定时默认不保存。
-2. **一个聊天 Session 不是一个持久化单元。** 只保存值得未来继续思考的高保真片段，无关插曲可以不进入 corpus。
-3. **文件组织像树，关系结构像图。**
-4. **思想分叉不用 Git branch 表示。**
-5. **同一个思想节点正文只保存一份。**
-6. **conversation = 已准入的 provenance；node = 压缩理解；graph = 拓扑。**
-7. **仓库自身的架构、Agent 协议、部署、可视化和维护不属于思想 corpus。**
-8. **任何时候不得为了 SEO/GEO、关键词、字数或“完整感”增加冗余内容。**
+1. **先做持久化准入，再判断更新、分叉或新根。** 话题变化不等于值得保存；不确定时默认不保存。
+2. **一个聊天 Session 不是一个持久化单元。** 无关插曲不进入 corpus，独立且有价值的新话题可以单独保存。
+3. **主父关系是一片森林，跨话题关系构成图。** `AI 未来` 不是所有主题的父节点。
+4. **同一个思想节点只保存一份，思想分叉不用 Git branch 表示。**
+5. **conversation = 已准入的 provenance；node = 压缩理解；graph = 拓扑。**
+6. **仓库自身的架构、Agent 协议、部署、可视化和维护不属于思想 corpus。**
+7. **不得为了 SEO/GEO、关键词、字数或“完整感”增加冗余内容。**
+
+## 拆分规则
+
+最小单位是：
+
+> **一个可独立继续的问题 + 当前理解 + 关键理由 + 不可缺少的成立条件和边界。**
+
+先在已有图谱中寻找同一问题，而不是只看当前分支。已有问题的新例子、证据、解释和限定条件更新原节点；独立问题已有不重复的理解增量，且值得单独检索与继续时，才新增节点。新名词、能力清单、章节标题和可能的后续问题都不能单独作为新建理由。
+
+`topic` 负责问题空间与综合导航，`concept` 负责具体机制或判断，`question` 只用于有实质上下文的未决问题。总览不重复子节点全文；必要限定条件不拆到另一个节点，让原判断失去边界。小修订更新原节点，值得保留新旧差异的重大修正才用 `refines` / `contradicts`。
+
+完整判断表、语义检查与整理已有内容的要求见 [BRAINSTORM.md](./BRAINSTORM.md)。结构校验不能代替这些语义判断。
+
+## 新增与 AI 未来并列的话题
+
+**支持多个独立的顶层主题，不要求把新话题挂在 `ai-future` 下。**
+
+新话题通过准入、没有已有同义节点，也没有真正的来源父节点时，创建包含实际理解与来源的节点：
+
+```yaml
+kind: topic
+primary_parent: null
+```
+
+其第一份已准入对话的 `primary_parent_conversation` 和 `forked_from_node` 也为 null。不创建通向 `AI 未来` 的虚构分叉边，不要求所有根彼此相连，也不提前创建空主题或演示内容。
+
+多个根从 `graph.yaml` 的空父节点自动识别；`category` 只是类别标签，不是根主题。新话题与既有节点确有联系时，用有理由的 `related_to`、`supports` 等边连接，不复制节点或改变其真实来源。
 
 ## 目录
 
@@ -33,7 +53,8 @@ thinking-graph/
 ├── conversations/      # 通过准入的高保真思想来源
 ├── nodes/              # 高信噪比思想节点
 ├── lib/                # 图谱读取、Markdown 渲染与校验
-├── scripts/            # 图谱校验
+├── scripts/            # 图谱校验入口
+├── tests/              # 多根主题、父链和元数据回归测试
 ├── src/                # Astro SSG 发布层（可替换）
 ├── schema/
 ├── astro.config.mjs
@@ -44,26 +65,13 @@ thinking-graph/
 
 ## 头脑风暴模式
 
-如果只是继续思考/讨论，**不要读取工程代码**。
+如果只是继续思考/讨论，**不要读取工程代码**。最小读取路径为 `BRAINSTORM.md` → `graph.yaml` 中相关问题 → 对应 `nodes/<id>.md`；仅在需要时扩展父节点、关系或原始 conversation。
 
-最小读取路径：
-
-1. [BRAINSTORM.md](./BRAINSTORM.md)
-2. `graph.yaml` 中当前话题相关部分
-3. 当前 `nodes/<id>.md`
-4. 只有确有必要时才读父节点、关联节点或原始 conversation
-
-只有通过 **Persistence Gate** 的内容才进入 `conversations/`、`nodes/`、`graph.yaml`。临时问题、闲聊、无关插曲以及仓库自身维护/设计内容不进入思想 corpus。
+只有通过 Persistence Gate 的内容才进入思想 corpus。总览综合新来源时，同步维护节点和图谱的 `source_conversations`。长来源可在节点的 `Source scope` 中注明原会话小节或关键原句，不为查找方便拆碎、改写原会话。
 
 ## Astro SSG 发布层
 
-思想层保持原样：
-
-```text
-graph.yaml + nodes/ + conversations/
-```
-
-Astro 在构建期派生：
+思想层是 `graph.yaml + nodes/ + conversations/`。Astro 在构建期派生：
 
 ```text
 /                                    # 交互式图谱首页
@@ -75,29 +83,33 @@ Astro 在构建期派生：
 /sitemap-*.xml                       # 配置 SITE_URL 后生成
 ```
 
-Markdown 在构建期转成并清理为 HTML，不再依赖浏览器运行时 fetch Markdown。
-
-真实内链从 `graph.yaml` 派生：主父节点、子分支、跨话题关系、反向引用和来源对话。SEO/GEO 只处理发布结构，不增加思想正文。
+Markdown 在构建期转成并清理为 HTML。内链从主父节点、子分支、正式关系和来源中派生；SEO/GEO 不增加思想正文。
 
 ### 浏览与交互
 
-- 桌面默认图谱与节点内容侧栏；点击图谱节点会在当前页直接展开完整正文，独立节点页跳转保留为可选入口。手机默认节点列表，可切换到图谱；移动端优先使用扁平列表与分隔线，减少卡片嵌套和空间浪费。
-- 首页与节点索引共用标题、摘要、标签搜索和主题筛选；浏览状态通过 URL 的 `q`、`category`、`view`、`node` 参数恢复。
-- 图谱支持拖动、缩放按钮、Ctrl / ⌘ + 滚轮；键盘方向键平移、加减键缩放、`0` 适应画布、`/` 聚焦搜索。触屏先启用“移动画布”，支持拖动与双指缩放，关闭后恢复页面滚动。
-- 主题默认跟随系统，可手动切换并记住选择。移动端图谱节点内容使用原生模态对话框，支持 Escape 关闭和焦点返回。
-- 禁用 JavaScript 时仍可浏览静态节点卡片、节点正文与来源对话。
+- 首页与节点索引自动列出全部“顶层话题”总览链接；图谱并列绘制所有根，llms.txt 区分根主题入口与其他节点。同一节点在机器索引中只列一次。
+- 桌面默认图谱与正文侧栏；点击图谱节点仍在当前页展开，独立页面是可选入口。手机默认节点列表，可切换图谱；保留扁平阅读布局，避免增加卡片嵌套。
+- 标题、摘要、标签搜索和**类别筛选**通过 URL 的 `q`、`category`、`view`、`node` 恢复。类别筛选不是顶层主题归属筛选。
+- 图谱支持拖动、缩放按钮、Ctrl / ⌘ + 滚轮；方向键平移、加减键缩放、`0` 适应画布、`/` 聚焦搜索。触屏启用“移动画布”后支持拖动与双指缩放，关闭后恢复页面滚动。
+- 颜色主题跟随系统且可手动切换。移动端图谱内容使用原生模态对话框，支持 Escape 和焦点返回。
+- 禁用 JavaScript 时仍可使用静态话题入口、节点正文与来源链接。顶层话题总览链接打开对应独立节点页。
 
-## 本地开发
+## 本地开发与校验
 
-Astro 当前要求 Node 22.12.0+，仓库包含 `.nvmrc`。
+仓库要求 Node 22.12.0+，包含 `.nvmrc`。
 
 ```bash
 npm install
+npm test
 npm run check
 npm run dev
 npm run build
 npm run preview
 ```
+
+`npm test` 使用 Node 内置测试，不依赖第三方包。`npm run check` 先执行测试，再读取实际图谱，检查多根父链、循环、分叉边、来源存在性，以及节点与图谱元数据一致性。`npm run build` 在这些检查后执行 Astro 构建。
+
+测试里的独立话题只存在于工程夹具中，不进入 `nodes/`、`conversations/` 或正式图谱。通过结构测试不代表内容自动通过语义准入或事实核验。
 
 ## Cloudflare
 
@@ -109,24 +121,10 @@ Deploy command: npx wrangler deploy
 Production branch: main
 ```
 
-生产环境建议设置：
-
-```text
-SITE_URL=https://你的最终公开域名
-```
-
-它用于 canonical、JSON-LD 绝对 URL、sitemap 与 llms.txt 的绝对链接。详情见 [CLOUDFLARE.md](./CLOUDFLARE.md)。
+生产环境设置 `SITE_URL` 为最终公开域名，用于 canonical、JSON-LD、sitemap 与 llms.txt 绝对链接。详情见 [CLOUDFLARE.md](./CLOUDFLARE.md)。
 
 ## 提交与部署原子性
 
-`main` 是发布边界：
+`main` 是发布边界：**一次完整逻辑变更 = 一个 Git commit = 一次 main 更新 = 一次 Cloudflare 构建触发。**
 
-> **一次完整逻辑变更 = 一个 Git commit = 一次 main 更新 = 一次 Cloudflare 构建。**
-
-Agent 的标准发布路径：
-
-```text
-blobs → tree → commit → update_ref(main) once
-```
-
-详细规则见 [AGENTS.md](./AGENTS.md)。
+Agent 使用 `blobs → tree → commit → recheck main → update_ref(main) once`，不得逐文件连续发布不完整状态。详细协议见 [AGENTS.md](./AGENTS.md)。
